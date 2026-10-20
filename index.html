@@ -2,40 +2,65 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>チャッピールーム</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f7f3ed;
             font-family: sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             box-sizing: border-box;
+            min-height: 100vh;
         }
         .container {
             width: 100%;
             max-width: 400px;
-            padding: 20px;
             box-sizing: border-box;
             text-align: center;
         }
-        /* ボタンや入力欄が画面からはみ出さない魔法の設定 */
+        /* スマホの画面でもボタンや入力欄が絶対にはみ出さない設定 */
         button, input, textarea {
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
+            font-size: 16px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        h1 {
+            color: #555;
+            font-size: 24px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>チャッピールームへようこそ</h1>
-        <p>お母さんのための特別な場所です。</p>
+        <h1>🐾 チャッピールーム 🐾</h1>
+        <p>おかえりなさい！ここでおしゃべりできるよ。</p>
+        
+        <!-- チャッピーとのおしゃべりエリア -->
+        <div style="background: white; padding: 15px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <p id="chat-text">チャッピーだよ！何か話しかけてね。</p>
+            <input type="text" id="user-input" placeholder="ここに入力してね">
+            <button onclick="chappyTalk()">チャッピーに話す</button>
+        </div>
     </div>
+
+    <script>
+        function chappyTalk() {
+            const input = document.getElementById('user-input').value;
+            const text = document.getElementById('chat-text');
+            if(input.trim() !== "") {
+                text.innerText = "チャッピー：「" + input + "」って聞いたよ！ワン！";
+                document.getElementById('user-input').value = "";
+            } else {
+                text.innerText = "チャッピー：何か言葉を教えてね！";
+            }
+        }
+    </script>
 </body>
 </html>
