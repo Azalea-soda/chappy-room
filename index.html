@@ -42,8 +42,9 @@
             flex: 1; 
             position: relative; 
             background-image: url('bg-winter.png');
+            /* ===== カーペット部分を少し調整し、チャッピーのスペースを上に確保する設定 ===== */
             background-size: cover; 
-            background-position: center; 
+            background-position: center 40%; 
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -56,11 +57,11 @@
             width: 90%;
             height: 25%; 
             min-height: 95px;
-            background-color: rgba(255, 255, 255, 0.82); 
+            background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 18px;
             padding: 10px 12px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             z-index: 20;
         }
@@ -69,10 +70,10 @@
             width: 100%;
             height: 100%;
             overflow-y: auto; 
-            padding-right: 20px; 
+            padding-right: 15px; 
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            gap: 6px;
         }
         
         .translucent-box::after {
@@ -94,25 +95,26 @@
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
         .speech-text { 
-            font-size: 21px; 
+            font-size: 20px; 
             font-weight: 700; 
-            text-align: center; 
+            text-align: left; 
             width: 100%; 
             word-break: break-all;
             line-height: 1.4;
         }
         
-        .text-black { color: #222222; }
+        .text-black { color: #222222; text-align: center; }
         .text-orange { color: #e65100; }
         .text-blue { color: #0d47a1; } 
         
         .cat-container { 
             position: absolute; 
-            width: 82%; 
-            max-width: 320px;
+            /* ===== チャッピーの位置を少し上に持ち上げました ===== */
+            width: 78%; 
+            max-width: 300px;
             height: auto;
             pointer-events: none;
-            bottom: 3%; 
+            bottom: 6%; 
             left: 50%;
             transform: translateX(-50%);
         }
@@ -124,20 +126,21 @@
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            /* ===== 上の隙間を詰めて、下に十分な余裕を持たせた調整 ===== */
-            padding: 4px 10px 14px 10px; 
+            /* ===== 上下にゆとりを持たせつつボタンが絶対に欠けない安全な設計 ===== */
+            padding: 8px 10px 14px 10px; 
             z-index: 10; 
             border-top: 2px solid #f0f0f0; 
             flex-shrink: 0;
-            gap: 2px;
+            gap: 6px;
         }
         
         .counter-box { 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            gap: 4px; 
-            font-size: 16px; 
+            gap: 6px; 
+            /* ===== 花丸と文字のサイズを大きくして見やすくしました ===== */
+            font-size: 18px; 
             font-weight: 700; 
             color: #333333; 
             width: 100%;
@@ -146,10 +149,10 @@
             overflow: hidden;
         }
         
-        .hanamaru-img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+        .hanamaru-img { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
         
         .count-number-red {
-            font-size: 24px;
+            font-size: 28px;
             color: #ff1744; 
             font-weight: 900;
             margin: 0 2px;
@@ -186,7 +189,7 @@
         <div class="room-area" id="room">
             <div class="translucent-box">
                 <div class="scroll-area" id="scroll-box">
-                    <div class="speech-text text-black" id="speech-display">お話しするにゃん！🐾</div>
+                    <div class="speech-text text-black">お話しするにゃん！🐾</div>
                 </div>
             </div>
             <div class="cat-container" id="cat">
@@ -207,9 +210,9 @@
     <script>
         let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
         let talkCount = 0;     
-        let accumulatedText = ""; 
         let recognition = null;
         let autoResetTimer = null;
+        let currentTranscriptDiv = null;
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,22 +231,26 @@
                 recognition.continuous = true;
                 recognition.interimResults = true;
 
+                const scrollBox = document.getElementById('scroll-box');
+                if (scrollBox) {
+                    currentTranscriptDiv = document.createElement('div');
+                    currentTranscriptDiv.className = "speech-text text-orange";
+                    currentTranscriptDiv.innerText = "「...」";
+                    scrollBox.appendChild(currentTranscriptDiv);
+                }
+
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let currentTranscript = "";
+                    let currentText = "";
                     for (let i = 0; i < event.results.length; ++i) {
-                        currentTranscript += event.results[i][0].transcript;
+                        currentText += event.results[i][0].transcript;
                     }
                     
-                    accumulatedText = currentTranscript;
-
-                    const displayElement = document.getElementById('speech-display');
-                    if (displayElement) {
-                        displayElement.innerText = "「" + accumulatedText + "」";
+                    if (currentTranscriptDiv) {
+                        currentTranscriptDiv.innerText = "「" + currentText + "」";
                     }
                     
-                    const scrollBox = document.getElementById('scroll-box');
                     if (scrollBox) {
                         scrollBox.scrollTop = scrollBox.scrollHeight;
                     }
@@ -267,7 +274,6 @@
 
         function handleButtonClick() {
             const micBtn = document.getElementById('mic-btn');
-            const speechDisplay = document.getElementById('speech-display');
             const scrollBox = document.getElementById('scroll-box');
 
             if (autoResetTimer) {
@@ -278,12 +284,7 @@
             if (currentStatus === 0) {
                 // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
                 currentStatus = 1;
-                accumulatedText = ""; 
                 if (micBtn) micBtn.className = "mic-button state-listening";
-                if (speechDisplay) {
-                    speechDisplay.className = "speech-text text-orange";
-                    speechDisplay.innerText = "お話を聞いてるにゃん...🐾";
-                }
                 startSpeechRecognition();
                 
             } else if (currentStatus === 1) {
@@ -294,9 +295,14 @@
                 }
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
-                if (speechDisplay) {
-                    speechDisplay.className = "speech-text text-blue";
-                    speechDisplay.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
+                
+                // チャッピーのお返事も履歴として下にスクロールで残る
+                if (scrollBox) {
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = "speech-text text-blue";
+                    replyDiv.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
+                    scrollBox.appendChild(replyDiv);
+                    scrollBox.scrollTop = scrollBox.scrollHeight;
                 }
                 
                 talkCount++;
@@ -314,7 +320,7 @@
             }
         }
 
-        function resetToWaiting() {
+    function resetToWaiting() {
             currentStatus = 0;
             if (recognition) {
                 try { recognition.stop(); } catch(e) {}
@@ -325,12 +331,17 @@
             }
             
             const micBtn = document.getElementById('mic-btn');
-            const speechDisplay = document.getElementById('speech-display');
+            const scrollBox = document.getElementById('scroll-box');
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
-            if (speechDisplay) {
-                speechDisplay.className = "speech-text text-black";
-                speechDisplay.innerText = "お話しするにゃん！🐾";
+            
+            if (scrollBox) {
+                const waitDiv = document.createElement('div');
+                waitDiv.className = "speech-text text-black";
+                waitDiv.style.textAlign = "center";
+                waitDiv.innerText = "お話しするにゃん！🐾";
+                scrollBox.appendChild(waitDiv);
+                scrollBox.scrollTop = scrollBox.scrollHeight;
             }
         }
     </script>
