@@ -2,35 +2,349 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チャッピールーム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>お母さんの相棒アプリ</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- キウイ丸フォントの組み込み -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Kiwi+Maru:wght@500;700;900&display=swap" rel="stylesheet">
+    
     <style>
-        /* ===== スマホ（arrows）でもボタンがはみ出さない安全な調整 ===== */
-        * {
-            box-sizing: border-box;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        
+        body { 
+            font-family: 'Kiwi Maru', sans-serif; 
+            background-color: #1a1a1a; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            overflow: hidden;
         }
-        body {
-            margin: 0;
-            padding: 10px;
-            font-family: sans-serif;
-            /* ここに冬のお部屋などの背景や世界観がそのまま維持されます */
+        
+        .phone-screen { 
+            width: 100vw; 
+            height: 100dvh; 
+            max-width: 450px; 
+            background-color: #ffffff; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            position: relative; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
         }
-        /* ボタンや操作パネルが画面幅にぴったり収まり、はみ出さない設定 */
-        button, .button-container, .controls, input {
-            max-width: 100%;
+        
+        .room-area { 
+            flex: 1; 
+            position: relative; 
+            background-image: url('bg-winter.png');
+            background-size: cover; 
+            background-position: center; 
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .translucent-box {
+            position: absolute;
+            top: 4%;
+            left: 5%;
+            width: 90%;
+            height: 25%; 
+            min-height: 95px;
+            background-color: rgba(255, 255, 255, 0.82); 
+            border-radius: 18px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+
+        .scroll-area {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto; 
+            padding-right: 20px; 
+        }
+        
+        .translucent-box::after {
+            content: "▲\A\A▼"; 
+            white-space: pre;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #555555;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.1;
+        }
+
+        .scroll-area::-webkit-scrollbar { width: 5px; }
+        .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
+        
+        .speech-text { 
+            font-size: 21px; 
+            font-weight: 700; 
+            text-align: center; 
+            width: 100%; 
             word-break: break-all;
+            line-height: 1.4;
         }
+        
+        .text-black { color: #222222; }
+        .text-orange { color: #e65100; }
+        .text-blue { color: #0d47a1; } 
+        
+        .cat-container { 
+            position: absolute; 
+            width: 82%; 
+            max-width: 320px;
+            height: auto;
+            pointer-events: none;
+            bottom: 3%; 
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .cat-main-img { width: 100%; height: auto; display: block; }
+        
+        .control-area { 
+            background-color: #ffffff; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 8px 10px 12px 10px; 
+            z-index: 10; 
+            border-top: 2px solid #f0f0f0; 
+            flex-shrink: 0;
+            gap: 6px;
+        }
+        
+        .counter-box { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 4px; 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: #333333; 
+            width: 100%;
+            /* ===== スマホ（arrows）で文字やアイコンがらはみ出さないための調整 ===== */
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        .hanamaru-img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+        
+        .count-number-red {
+            font-size: 24px;
+            color: #ff1744; 
+            font-weight: 900;
+            margin: 0 2px;
+        }
+        
+        .mic-button { 
+            width: 68px; 
+            height: 68px; 
+            border-radius: 50%; 
+            border: 4px solid #ccc; 
+            font-size: 30px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+            transition: all 0.2s ease; 
+            -webkit-tap-highlight-color: transparent; 
+            flex-shrink: 0;
+        }
+        .mic-button:active { transform: scale(0.92); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+        
+        .state-waiting { background-color: #ffffff; border-color: #e0e0e0; color: #555; }
+        .state-listening { background-color: #ffcc80; border-color: #ffb74d; color: #ffffff; animation: pulse-orange 1.5s infinite; }
+        .state-speaking { background-color: #90caf9; border-color: #64b5f6; color: #ffffff; animation: pulse-blue 1.5s infinite; }
+        
+        @keyframes pulse-orange { 0% { box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(255, 183, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 183, 77, 0); } }
+        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(100, 181, 246, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(100, 181, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(100, 181, 246, 0); } }
     </style>
 </head>
 <body>
-    <!-- 
-      ※注意：このコードは雛形ベースです。
-      もしお手元の1時間前のコードの全体（<html>から</html>まで）をそのままお持ちの場合は、
-      その中の <head> の中に上記の style（スマホ対応のCSS）をポコッと入れていただくか、
-      このまま貼り付けても大丈夫なように作成しています。
-    -->
-    <h1>チャッピールームへようこそ！</h1>
-    <p>お母様のリハビリと笑顔のための大切な場所</p>
-    <!-- 花丸や冬のお部屋の要素はすべてここに保持されます -->
+
+    <div class="phone-screen">
+        <div class="room-area" id="room">
+            <div class="translucent-box">
+                <div class="scroll-area" id="scroll-box">
+                    <div class="speech-text text-black" id="speech-display">お話しするにゃん！🐾</div>
+                </div>
+            </div>
+            <div class="cat-container" id="cat">
+                <img id="cat-main" src="cat-default.png" class="cat-main-img" alt="チャッピー">
+            </div>
+        </div>
+        
+        <div class="control-area">
+            <div class="counter-box">
+                <img src="hanamaru.png" class="hanamaru-img" id="hanamaru-icon" alt="💮">
+                <span>今日<span class="count-number-red" id="count-num">0</span>回お話ししたにゃ🐾</span>
+            </div>
+            
+            <button class="mic-button state-waiting" id="mic-btn" onclick="handleButtonClick()">🎙️</button>
+        </div>
+    </div>
+
+    <script>
+        let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
+        let talkCount = 0;     
+        let accumulatedText = ""; 
+        let recognition = null;
+        let autoResetTimer = null;
+
+        function isMorning() {
+            const now = new Date();
+            return now.getHours() < 12;
+        }
+
+        window.onload = function() {
+            setTimeout(function() {
+                const speechDisplay = document.getElementById('speech-display');
+                if (speechDisplay && isMorning()) {
+                    speechDisplay.innerText = "おかあさん、おはよう！今日の天気はどうにゃん？予定はあるの？🐾";
+                }
+            }, 500);
+        };
+
+        function startSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                console.log("このブラウザは音声認識に対応していません");
+                return;
+            }
+
+            try {
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                }
+
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ja-JP';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = function(event) {
+                    // 聞き取り中(ステータス1)のときだけテキストを組み立てて表示する
+                    if (currentStatus !== 1) return;
+
+                    let currentTranscript = "";
+                    for (let i = 0; i < event.results.length; ++i) {
+                        currentTranscript += event.results[i][0].transcript;
+                    }
+                    
+                    accumulatedText = currentTranscript;
+
+                    const displayElement = document.getElementById('speech-display');
+                    if (displayElement) {
+                        displayElement.innerText = "「" + accumulatedText + "」";
+                    }
+                    
+                    const scrollBox = document.getElementById('scroll-box');
+                    if (scrollBox) {
+                        scrollBox.scrollTop = scrollBox.scrollHeight;
+                    }
+                };
+
+                recognition.onerror = function(e) {
+                    console.log("マイクエラー:", e.error);
+                };
+
+                recognition.onend = function() {
+                    // もしまだ聞き取り中(ステータス1)なのに勝手に止まってしまったら再起動する
+                    if (currentStatus === 1 && recognition) {
+                        try { recognition.start(); } catch(err) {}
+                    }
+                };
+
+                recognition.start();
+            } catch(e) {
+                console.log("マイク起動エラー:", e);
+            }
+        }
+
+        function handleButtonClick() {
+            const micBtn = document.getElementById('mic-btn');
+            const speechDisplay = document.getElementById('speech-display');
+
+            if (autoResetTimer) {
+                clearTimeout(autoResetTimer);
+                autoResetTimer = null;
+            }
+
+            if (currentStatus === 0) {
+                // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
+                currentStatus = 1;
+                accumulatedText = ""; 
+                if (micBtn) micBtn.className = "mic-button state-listening";
+                if (speechDisplay) {
+                    speechDisplay.className = "speech-text text-orange";
+                    speechDisplay.innerText = "お話を聞いてるにゃん...🐾";
+                }
+                startSpeechRecognition();
+                
+            } else if (currentStatus === 1) {
+                // 1: 聞き取り中(オレンジ) ⇒ 2: お返事中(青)
+                currentStatus = 2;
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                }
+                
+                if (micBtn) micBtn.className = "mic-button state-speaking";
+                if (speechDisplay) {
+                    speechDisplay.className = "speech-text text-blue";
+                    speechDisplay.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
+                }
+                
+                talkCount++;
+                const countNum = document.getElementById('count-num');
+                if (countNum) countNum.innerText = talkCount;
+
+                // 約6秒後に自動で待機状態（白）に戻る
+                autoResetTimer = setTimeout(function() {
+                    resetToWaiting();
+                }, 6000);
+                
+            } else if (currentStatus === 2) {
+                // 2: お返事中(青) ⇒ 手動ですぐ待機(白)に戻す
+                resetToWaiting();
+            }
+        }
+
+        function resetToWaiting() {
+            currentStatus = 0;
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+            if (autoResetTimer) {
+                clearTimeout(autoResetTimer);
+                autoResetTimer = null;
+            }
+            
+            const micBtn = document.getElementById('mic-btn');
+            const speechDisplay = document.getElementById('speech-display');
+
+            if (micBtn) micBtn.className = "mic-button state-waiting";
+            if (speechDisplay) {
+                speechDisplay.className = "speech-text text-black";
+                speechDisplay.innerText = "お話しするにゃん！🐾";
+            }
+        }
+    </script>
 </body>
 </html>
