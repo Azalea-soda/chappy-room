@@ -51,16 +51,16 @@
         
         .translucent-box {
             position: absolute;
-            top: 4%;
+            top: 3%;
             left: 5%;
             width: 90%;
-            height: 25%; 
+            height: 28%; 
             min-height: 95px;
-            background-color: rgba(255, 255, 255, 0.82); 
+            background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 18px;
-            padding: 10px 12px;
+            padding: 12px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             z-index: 20;
         }
@@ -69,34 +69,23 @@
             width: 100%;
             height: 100%;
             overflow-y: auto; 
-            padding-right: 20px; 
-        }
-        
-        .translucent-box::after {
-            content: "▲\A\A▼"; 
-            white-space: pre;
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 11px;
-            color: #555555;
-            font-weight: bold;
-            text-align: center;
-            pointer-events: none;
-            line-height: 1.1;
+            padding-right: 15px; 
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .scroll-area::-webkit-scrollbar { width: 5px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
         .speech-text { 
-            font-size: 21px; 
+            font-size: 19px; 
             font-weight: 700; 
-            text-align: center; 
+            text-align: left; 
             width: 100%; 
             word-break: break-all;
             line-height: 1.4;
+            padding: 4px 0;
         }
         
         .text-black { color: #222222; }
@@ -109,7 +98,7 @@
             max-width: 320px;
             height: auto;
             pointer-events: none;
-            bottom: 3%; 
+            bottom: 2%; 
             left: 50%;
             transform: translateX(-50%);
         }
@@ -121,11 +110,11 @@
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            padding: 8px 10px 12px 10px; 
+            padding: 6px 10px 10px 10px; 
             z-index: 10; 
             border-top: 2px solid #f0f0f0; 
             flex-shrink: 0;
-            gap: 6px;
+            gap: 4px;
         }
         
         .counter-box { 
@@ -133,31 +122,30 @@
             align-items: center; 
             justify-content: center; 
             gap: 4px; 
-            font-size: 16px; 
+            font-size: 15px; 
             font-weight: 700; 
             color: #333333; 
             width: 100%;
-            /* ===== スマホ（arrows）で文字やアイコンがらはみ出さないための調整 ===== */
             flex-wrap: nowrap;
             white-space: nowrap;
             overflow: hidden;
         }
         
-        .hanamaru-img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+        .hanamaru-img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
         
         .count-number-red {
-            font-size: 24px;
+            font-size: 22px;
             color: #ff1744; 
             font-weight: 900;
             margin: 0 2px;
         }
         
         .mic-button { 
-            width: 68px; 
-            height: 68px; 
+            width: 62px; 
+            height: 62px; 
             border-radius: 50%; 
             border: 4px solid #ccc; 
-            font-size: 30px; 
+            font-size: 28px; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -183,7 +171,7 @@
         <div class="room-area" id="room">
             <div class="translucent-box">
                 <div class="scroll-area" id="scroll-box">
-                    <div class="speech-text text-black" id="speech-display">お話しするにゃん！🐾</div>
+                    <div class="speech-text text-black">お話しするにゃん！🐾</div>
                 </div>
             </div>
             <div class="cat-container" id="cat">
@@ -204,23 +192,9 @@
     <script>
         let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
         let talkCount = 0;     
-        let accumulatedText = ""; 
         let recognition = null;
         let autoResetTimer = null;
-
-        function isMorning() {
-            const now = new Date();
-            return now.getHours() < 12;
-        }
-
-        window.onload = function() {
-            setTimeout(function() {
-                const speechDisplay = document.getElementById('speech-display');
-                if (speechDisplay && isMorning()) {
-                    speechDisplay.innerText = "おかあさん、おはよう！今日の天気はどうにゃん？予定はあるの？🐾";
-                }
-            }, 500);
-        };
+        let currentTranscriptDiv = null; // 現在聞き取り中の発言要素
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -239,23 +213,27 @@
                 recognition.continuous = true;
                 recognition.interimResults = true;
 
+                // 聞き取り開始時に、新しいお母さんの言葉用の枠をスクロールエリアに追加する
+                const scrollBox = document.getElementById('scroll-box');
+                if (scrollBox) {
+                    currentTranscriptDiv = document.createElement('div');
+                    currentTranscriptDiv.className = "speech-text text-orange";
+                    currentTranscriptDiv.innerText = "「...」";
+                    scrollBox.appendChild(currentTranscriptDiv);
+                }
+
                 recognition.onresult = function(event) {
-                    // 聞き取り中(ステータス1)のときだけテキストを組み立てて表示する
                     if (currentStatus !== 1) return;
 
-                    let currentTranscript = "";
+                    let currentText = "";
                     for (let i = 0; i < event.results.length; ++i) {
-                        currentTranscript += event.results[i][0].transcript;
+                        currentText += event.results[i][0].transcript;
                     }
                     
-                    accumulatedText = currentTranscript;
-
-                    const displayElement = document.getElementById('speech-display');
-                    if (displayElement) {
-                        displayElement.innerText = "「" + accumulatedText + "」";
+                    if (currentTranscriptDiv) {
+                        currentTranscriptDiv.innerText = "「" + currentText + "」";
                     }
                     
-                    const scrollBox = document.getElementById('scroll-box');
                     if (scrollBox) {
                         scrollBox.scrollTop = scrollBox.scrollHeight;
                     }
@@ -266,7 +244,6 @@
                 };
 
                 recognition.onend = function() {
-                    // もしまだ聞き取り中(ステータス1)なのに勝手に止まってしまったら再起動する
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
@@ -280,7 +257,7 @@
 
         function handleButtonClick() {
             const micBtn = document.getElementById('mic-btn');
-            const speechDisplay = document.getElementById('speech-display');
+            const scrollBox = document.getElementById('scroll-box');
 
             if (autoResetTimer) {
                 clearTimeout(autoResetTimer);
@@ -290,12 +267,7 @@
             if (currentStatus === 0) {
                 // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
                 currentStatus = 1;
-                accumulatedText = ""; 
                 if (micBtn) micBtn.className = "mic-button state-listening";
-                if (speechDisplay) {
-                    speechDisplay.className = "speech-text text-orange";
-                    speechDisplay.innerText = "お話を聞いてるにゃん...🐾";
-                }
                 startSpeechRecognition();
                 
             } else if (currentStatus === 1) {
@@ -306,9 +278,14 @@
                 }
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
-                if (speechDisplay) {
-                    speechDisplay.className = "speech-text text-blue";
-                    speechDisplay.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
+                
+                // チャッピーの返事も消えずに履歴として下に新しく追加される
+                if (scrollBox) {
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = "speech-text text-blue";
+                    replyDiv.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
+                    scrollBox.appendChild(replyDiv);
+                    scrollBox.scrollTop = scrollBox.scrollHeight;
                 }
                 
                 talkCount++;
@@ -337,12 +314,17 @@
             }
             
             const micBtn = document.getElementById('mic-btn');
-            const speechDisplay = document.getElementById('speech-display');
+            const scrollBox = document.getElementById('scroll-box');
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
-            if (speechDisplay) {
-                speechDisplay.className = "speech-text text-black";
-                speechDisplay.innerText = "お話しするにゃん！🐾";
+            
+            // 待機に戻るときも新しい行として「お話しするにゃん！🐾」を追加するか、綺麗な状態を保つ
+            if (scrollBox) {
+                const waitDiv = document.createElement('div');
+                waitDiv.className = "speech-text text-black";
+                waitDiv.innerText = "お話しするにゃん！🐾";
+                scrollBox.appendChild(waitDiv);
+                scrollBox.scrollTop = scrollBox.scrollHeight;
             }
         }
     </script>
