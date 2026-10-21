@@ -50,28 +50,28 @@
             overflow: hidden;
         }
         
-        /* 半透明ボックス：お母様がしっかり見返せるサイズ */
+        /* 半透明ボックス：お母様が大きく読みやすい特大サイズエリア */
         .translucent-box {
             position: absolute;
-            top: 4%;
+            top: 3%;
             left: 5%;
             width: 90%;
-            height: 32%; 
-            background-color: rgba(255, 255, 255, 0.88); 
+            height: 36%; 
+            background-color: rgba(255, 255, 255, 0.90); 
             border-radius: 18px;
-            padding: 12px 14px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             z-index: 20;
         }
 
-        /* 会話が積み重なり、スクロールして見返せるエリア */
+        /* 履歴が積み重なりスクロールできるエリア */
         .scroll-area {
             width: 100%;
             height: 100%;
             overflow-y: auto; 
-            padding-right: 8px; 
+            padding-right: 6px; 
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -80,13 +80,14 @@
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
+        /* お母様が見やすい特大サイズ（3行サイズにしっかり収まる設計） */
         .speech-text { 
             font-family: 'Kiwi Maru', sans-serif !important;
-            font-size: 22px; /* お母様が大きく読みやすいサイズ */
+            font-size: 28px; 
             font-weight: 700; 
             width: 100%; 
             word-break: break-all;
-            line-height: 1.4;
+            line-height: 1.35;
             padding: 4px 0;
         }
         
@@ -96,60 +97,58 @@
         
         .cat-container { 
             position: absolute; 
-            width: 82%; 
-            max-width: 320px;
+            width: 78%; 
+            max-width: 300px;
             height: auto;
             pointer-events: none;
-            bottom: 3%; 
+            bottom: 2%; 
             left: 50%;
             transform: translateX(-50%);
         }
         .cat-main-img { width: 100%; height: auto; display: block; }
         
-        /* コントロールエリア：ボタンが絶対に欠けない安全な設計 */
+        /* コントロールエリア：黒帯を出さず、ボタンが絶対に欠けない安全な設計 */
         .control-area { 
             background-color: #ffffff; 
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            padding: 8px 10px 14px 10px; 
+            padding: 10px 10px 16px 10px; 
             z-index: 10; 
             border-top: 2px solid #f0f0f0; 
             flex-shrink: 0;
-            gap: 6px;
+            gap: 8px;
         }
         
         .counter-box { 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            gap: 6px; 
+            gap: 8px; 
             font-family: 'Kiwi Maru', sans-serif !important;
-            font-size: 18px; 
+            font-size: 21px; /* 花丸カウンターの文字も大きく！ */
             font-weight: 700; 
             color: #333333; 
             width: 100%;
-            flex-wrap: nowrap;
             white-space: nowrap;
-            overflow: hidden;
         }
         
-        .hanamaru-img { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+        .hanamaru-img { width: 50px; height: 50px; object-fit: contain; flex-shrink: 0; }
         
         .count-number-red {
-            font-size: 26px;
+            font-size: 32px;
             color: #ff1744; 
             font-weight: 900;
             margin: 0 2px;
         }
         
         .mic-button { 
-            width: 68px; 
-            height: 68px; 
+            width: 72px; 
+            height: 72px; 
             border-radius: 50%; 
             border: 4px solid #ccc; 
-            font-size: 30px; 
+            font-size: 32px; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -198,6 +197,7 @@
         let talkCount = 0;     
         let recognition = null;
         let currentTranscriptDiv = null;
+        let finalTranscriptSaved = "";
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -208,7 +208,7 @@
 
             try {
                 if (recognition) {
-                    try { recognition.stop(); } catch(e) {}
+                    try { recognition.abort(); } catch(e) {}
                 }
 
                 recognition = new SpeechRecognition();
@@ -218,7 +218,6 @@
 
                 const scrollBox = document.getElementById('scroll-box');
                 if (scrollBox) {
-                    // 最初のお話しメッセージがあれば消す
                     const welcome = document.getElementById('welcome-msg');
                     if (welcome) welcome.remove();
 
@@ -228,16 +227,23 @@
                     scrollBox.appendChild(currentTranscriptDiv);
                 }
 
+                finalTranscriptSaved = "";
+
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let currentText = "";
-                    for (let i = 0; i < event.results.length; ++i) {
-                        currentText += event.results[i][0].transcript;
+                    let interimText = "";
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscriptSaved += event.results[i][0].transcript;
+                        } else {
+                            interimText += event.results[i][0].transcript;
+                        }
                     }
                     
+                    const displayText = finalTranscriptSaved + interimText;
                     if (currentTranscriptDiv) {
-                        currentTranscriptDiv.innerText = "「" + currentText + "」";
+                        currentTranscriptDiv.innerText = "「" + displayText + "」";
                     }
                     
                     if (scrollBox) {
@@ -250,6 +256,7 @@
                 };
 
                 recognition.onend = function() {
+                    // 聞き取り中ステータスの間は、もし途切れても自動で再開して入力を守る
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
@@ -280,7 +287,7 @@
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
                 
-                // チャッピーのお返事を履歴として追加（自動で消えません）
+                // チャッピーのお返事を履歴として追加（自動で消えず、青ボタンを押すまで残る）
                 if (scrollBox) {
                     const replyDiv = document.createElement('div');
                     replyDiv.className = "speech-text text-blue";
@@ -292,11 +299,9 @@
                 talkCount++;
                 const countNum = document.getElementById('count-num');
                 if (countNum) countNum.innerText = talkCount;
-
-                // ※自動タイマーは廃止しました。お母様が読み終えて青ボタンを押すまでそのまま残ります。
                 
             } else if (currentStatus === 2) {
-                // 2: お返事中(青) ⇒ 手動で青ボタンを押して待機(白)に戻す
+                // 2: お返事中(青) ⇒ 手動で青ボタンを押して安全に待機(白)に戻す
                 resetToWaiting();
             }
         }
@@ -313,7 +318,6 @@
             if (micBtn) micBtn.className = "mic-button state-waiting";
             
             if (scrollBox) {
-                // 綺麗にリセットして最初の待機メッセージに戻す
                 scrollBox.innerHTML = '<div class="speech-text text-black" id="welcome-msg">お話しするにゃん！🐾</div>';
             }
         }
