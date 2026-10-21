@@ -8,16 +8,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- キウイ丸フォントの組み込み -->
-    <link rel="preconnect" href="https://googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://googleapis.com/css2?family=Kiwi+Maru:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- キウイ丸フォントの確実な組み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500;700;900&display=swap" rel="stylesheet">
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         
         body { 
-            font-family: 'Kiwi Maru', sans-serif; 
+            font-family: 'Kiwi Maru', sans-serif !important; 
             background-color: #1a1a1a; 
             display: flex; 
             justify-content: center; 
@@ -42,9 +42,8 @@
             flex: 1; 
             position: relative; 
             background-image: url('bg-winter.png');
-            /* ===== カーペット部分を少し調整し、チャッピーのスペースを上に確保する設定 ===== */
             background-size: cover; 
-            background-position: center 40%; 
+            background-position: center; 
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -55,13 +54,13 @@
             top: 4%;
             left: 5%;
             width: 90%;
-            height: 25%; 
-            min-height: 95px;
+            height: 26%; 
+            min-height: 100px;
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 18px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             z-index: 20;
         }
@@ -72,8 +71,8 @@
             overflow-y: auto; 
             padding-right: 15px; 
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            justify-content: center;
         }
         
         .translucent-box::after {
@@ -95,26 +94,26 @@
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
         .speech-text { 
-            font-size: 20px; 
+            font-family: 'Kiwi Maru', sans-serif !important;
+            font-size: 23px; /* お母様が見やすいしっかり大きな文字サイズ */
             font-weight: 700; 
-            text-align: left; 
+            text-align: center; 
             width: 100%; 
             word-break: break-all;
             line-height: 1.4;
         }
         
-        .text-black { color: #222222; text-align: center; }
+        .text-black { color: #222222; }
         .text-orange { color: #e65100; }
         .text-blue { color: #0d47a1; } 
         
         .cat-container { 
             position: absolute; 
-            /* ===== チャッピーの位置を少し上に持ち上げました ===== */
-            width: 78%; 
-            max-width: 300px;
+            width: 82%; 
+            max-width: 320px;
             height: auto;
             pointer-events: none;
-            bottom: 6%; 
+            bottom: 3%; 
             left: 50%;
             transform: translateX(-50%);
         }
@@ -126,7 +125,6 @@
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            /* ===== 上下にゆとりを持たせつつボタンが絶対に欠けない安全な設計 ===== */
             padding: 8px 10px 14px 10px; 
             z-index: 10; 
             border-top: 2px solid #f0f0f0; 
@@ -139,8 +137,8 @@
             align-items: center; 
             justify-content: center; 
             gap: 6px; 
-            /* ===== 花丸と文字のサイズを大きくして見やすくしました ===== */
-            font-size: 18px; 
+            font-family: 'Kiwi Maru', sans-serif !important;
+            font-size: 18px; /* お母様がパッと見てわかる大きめサイズ */
             font-weight: 700; 
             color: #333333; 
             width: 100%;
@@ -149,10 +147,10 @@
             overflow: hidden;
         }
         
-        .hanamaru-img { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
+        .hanamaru-img { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
         
         .count-number-red {
-            font-size: 28px;
+            font-size: 26px;
             color: #ff1744; 
             font-weight: 900;
             margin: 0 2px;
@@ -189,7 +187,7 @@
         <div class="room-area" id="room">
             <div class="translucent-box">
                 <div class="scroll-area" id="scroll-box">
-                    <div class="speech-text text-black">お話しするにゃん！🐾</div>
+                    <div class="speech-text text-black" id="speech-display">お話しするにゃん！🐾</div>
                 </div>
             </div>
             <div class="cat-container" id="cat">
@@ -210,9 +208,9 @@
     <script>
         let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
         let talkCount = 0;     
+        let accumulatedText = ""; 
         let recognition = null;
         let autoResetTimer = null;
-        let currentTranscriptDiv = null;
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -231,26 +229,22 @@
                 recognition.continuous = true;
                 recognition.interimResults = true;
 
-                const scrollBox = document.getElementById('scroll-box');
-                if (scrollBox) {
-                    currentTranscriptDiv = document.createElement('div');
-                    currentTranscriptDiv.className = "speech-text text-orange";
-                    currentTranscriptDiv.innerText = "「...」";
-                    scrollBox.appendChild(currentTranscriptDiv);
-                }
-
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let currentText = "";
+                    let currentTranscript = "";
                     for (let i = 0; i < event.results.length; ++i) {
-                        currentText += event.results[i][0].transcript;
+                        currentTranscript += event.results[i][0].transcript;
                     }
                     
-                    if (currentTranscriptDiv) {
-                        currentTranscriptDiv.innerText = "「" + currentText + "」";
+                    accumulatedText = currentTranscript;
+
+                    const displayElement = document.getElementById('speech-display');
+                    if (displayElement) {
+                        displayElement.innerText = "「" + accumulatedText + "」";
                     }
                     
+                    const scrollBox = document.getElementById('scroll-box');
                     if (scrollBox) {
                         scrollBox.scrollTop = scrollBox.scrollHeight;
                     }
@@ -274,7 +268,7 @@
 
         function handleButtonClick() {
             const micBtn = document.getElementById('mic-btn');
-            const scrollBox = document.getElementById('scroll-box');
+            const speechDisplay = document.getElementById('speech-display');
 
             if (autoResetTimer) {
                 clearTimeout(autoResetTimer);
@@ -284,7 +278,12 @@
             if (currentStatus === 0) {
                 // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
                 currentStatus = 1;
+                accumulatedText = ""; 
                 if (micBtn) micBtn.className = "mic-button state-listening";
+                if (speechDisplay) {
+                    speechDisplay.className = "speech-text text-orange";
+                    speechDisplay.innerText = "お話を聞いてるにゃん...🐾";
+                }
                 startSpeechRecognition();
                 
             } else if (currentStatus === 1) {
@@ -295,14 +294,9 @@
                 }
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
-                
-                // チャッピーのお返事も履歴として下にスクロールで残る
-                if (scrollBox) {
-                    const replyDiv = document.createElement('div');
-                    replyDiv.className = "speech-text text-blue";
-                    replyDiv.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
-                    scrollBox.appendChild(replyDiv);
-                    scrollBox.scrollTop = scrollBox.scrollHeight;
+                if (speechDisplay) {
+                    speechDisplay.className = "speech-text text-blue";
+                    speechDisplay.innerText = "そうなんだね、お母さん！今日もとっても素敵だにゃん💕";
                 }
                 
                 talkCount++;
@@ -320,7 +314,7 @@
             }
         }
 
-    function resetToWaiting() {
+        function resetToWaiting() {
             currentStatus = 0;
             if (recognition) {
                 try { recognition.stop(); } catch(e) {}
@@ -331,17 +325,12 @@
             }
             
             const micBtn = document.getElementById('mic-btn');
-            const scrollBox = document.getElementById('scroll-box');
+            const speechDisplay = document.getElementById('speech-display');
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
-            
-            if (scrollBox) {
-                const waitDiv = document.createElement('div');
-                waitDiv.className = "speech-text text-black";
-                waitDiv.style.textAlign = "center";
-                waitDiv.innerText = "お話しするにゃん！🐾";
-                scrollBox.appendChild(waitDiv);
-                scrollBox.scrollTop = scrollBox.scrollHeight;
+            if (speechDisplay) {
+                speechDisplay.className = "speech-text text-black";
+                speechDisplay.innerText = "お話しするにゃん！🐾";
             }
         }
     </script>
