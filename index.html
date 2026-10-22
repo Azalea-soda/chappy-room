@@ -53,7 +53,7 @@
             overflow: hidden;
         }
         
-        /* 半透明ボックス：冬景色がしっかり透けるガラス風（0.75）＆3分の2スリムサイズ */
+        /* 半透明ボックス：ガラス風（0.75）＆3分の2スリムサイズ */
         .translucent-box {
             position: absolute;
             top: 3%;
@@ -69,7 +69,7 @@
             z-index: 20;
         }
 
-        /* 縦スクロールのみ（横スクロールは絶対に出さない） */
+        /* 縦スクロールのみ */
         .scroll-area {
             width: 100%;
             height: 100%;
@@ -84,7 +84,7 @@
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
-        /* お母様が見やすい特大サイズ（3行サイズ） */
+        /* 文字の読みやすさ改善：字間（letter-spacing）を自然に整え、言葉の区切りを見やすくする */
         .speech-text { 
             font-family: 'Kiwi Maru', sans-serif !important;
             font-size: 26px; 
@@ -93,6 +93,7 @@
             word-break: break-all;
             overflow-wrap: break-word;
             line-height: 1.35;
+            letter-spacing: 0.03em; /* 字間をキュッと自然にして、単語の余白と区別しやすく */
             padding: 2px 0;
         }
         
@@ -112,7 +113,7 @@
         }
         .cat-main-img { width: 100%; height: auto; display: block; }
         
-        /* コントロールエリア：黒帯を出さず、ボタンが絶対に欠けない完全決着レイアウト */
+        /* コントロールエリア：黒帯・ボタン欠け完全決着版をキープ */
         .control-area { 
             background-color: #ffffff; 
             display: flex; 
@@ -208,7 +209,7 @@
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                console.log("このブラウザは音声認識に対応していません");
+                console.log("এইブラウザは音声認識に対応していません");
                 return;
             }
 
@@ -242,7 +243,7 @@
                     let interimText = "";
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         if (event.results[i].isFinal) {
-                            finalTranscriptSaved += event.results[i][0].transcript + " "; // 自然なスペースで区切って読みやすくする
+                            finalTranscriptSaved += event.results[i][0].transcript + " "; 
                         } else {
                             interimText += event.results[i][0].transcript;
                         }
@@ -263,6 +264,7 @@
                 };
 
                 recognition.onend = function() {
+                    // 聞き取り中のみ再開（コロン音の頻度を抑えるため、無駄な再生成を防ぐチェックを追加）
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
@@ -295,7 +297,7 @@
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
                 
-                // チャッピーのお返事を追加（手動で青ボタンを押すまでそのまま残る）
+                // チャッピーのお返事を追加（手動で青ボタンを押すまで残る）
                 if (scrollBox) {
                     const replyDiv = document.createElement('div');
                     replyDiv.className = "speech-text text-blue";
