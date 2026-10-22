@@ -84,7 +84,7 @@
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
-        /* 読みやすい字間調整をキープ */
+        /* 読みやすい字間調整（0.03em）をキープ */
         .speech-text { 
             font-family: 'Kiwi Maru', sans-serif !important;
             font-size: 26px; 
@@ -204,7 +204,6 @@
         let talkCount = 0;     
         let recognition = null;
         let currentTranscriptDiv = null;
-        let finalTranscriptSaved = ""; // 確定した文を確実に蓄積する変数
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -229,33 +228,24 @@
                     const welcome = document.getElementById('welcome-msg');
                     if (welcome) welcome.remove();
 
-                    // お母さんの言葉を書き出す新しいブロックを作る
+                    // リアルタイムで文字が伸びていくオレンジ色のプレビューボックスを作成
                     currentTranscriptDiv = document.createElement('div');
                     currentTranscriptDiv.className = "speech-text text-orange";
                     currentTranscriptDiv.innerText = "「...」";
                     scrollBox.appendChild(currentTranscriptDiv);
                 }
 
-                finalTranscriptSaved = "";
-
-                // 【完全修復版】単語ごとに途切れないよう、確定したフレーズをキレイに連結しつつ、リアルタイムに表示を更新する仕組み
+                // 【完璧なプレビュー表示】ブラウザの認識結果を素直に1つの文としてリアルタイム表示し続ける仕組み
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let interimText = "";
-                    
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        const transcript = event.results[i][0].transcript;
-                        if (event.results[i].isFinal) {
-                            finalTranscriptSaved += transcript;
-                        } else {
-                            interimText += transcript;
-                        }
+                    let currentText = "";
+                    for (let i = 0; i < event.results.length; ++i) {
+                        currentText += event.results[i][0].transcript;
                     }
                     
-                    const displayText = finalTranscriptSaved + interimText;
-                    if (currentTranscriptDiv && displayText.trim() !== "") {
-                        currentTranscriptDiv.innerText = "「" + displayText + "」";
+                    if (currentTranscriptDiv && currentText.trim() !== "") {
+                        currentTranscriptDiv.innerText = "「" + currentText + "」";
                     }
                     
                     if (scrollBox) {
@@ -268,7 +258,6 @@
                 };
 
                 recognition.onend = function() {
-                    // 聞き取り中の間は、もし音声認識が切れても自動で再開して入力を守る
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
@@ -294,6 +283,7 @@
                 // 1: 聞き取り中(オレンジ) ⇒ 2: お返事中(青)
                 currentStatus = 2;
                 
+                // 音声認識を完全に停止してシャットアウト
                 if (recognition) {
                     try { recognition.abort(); } catch(e) {}
                     recognition = null;
@@ -301,7 +291,7 @@
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
                 
-                // チャッピーのお返事を追加（手動で青ボタンを押すまで残る）
+                // チャッピーのお返事を新しく追加（これまでの履歴の下に綺麗にスクロールして残る）
                 if (scrollBox) {
                     const replyDiv = document.createElement('div');
                     replyDiv.className = "speech-text text-blue";
@@ -332,6 +322,7 @@
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
             
+            // 次の会話のときは履歴をリフレッシュして新しくスタート
             if (scrollBox) {
                 scrollBox.innerHTML = '<div class="speech-text text-black" id="welcome-msg">お話しするにゃん！🐾</div>';
             }
