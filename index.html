@@ -69,7 +69,7 @@
             z-index: 20;
         }
 
-        /* 縦スクロールのみ（言葉が積み重なると下にスクロールする） */
+        /* 縦スクロールのみ */
         .scroll-area {
             width: 100%;
             height: 100%;
@@ -203,7 +203,8 @@
         let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
         let talkCount = 0;     
         let recognition = null;
-        let activeParagraph = null; // 現在お母さんが話している行の要素
+        let finalizedText = ""; // 確定したテキストを蓄積する変数
+        let currentTranscriptDiv = null;
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,23 +229,37 @@
                     const welcome = document.getElementById('welcome-msg');
                     if (welcome) welcome.remove();
 
-                    // 新しい発話用の行を綺麗に作成する
-                    activeParagraph = document.createElement('div');
-                    activeParagraph.className = "speech-text text-orange";
-                    activeParagraph.innerText = "「...」";
-                    scrollBox.appendChild(activeParagraph);
+                    currentTranscriptDiv = document.createElement('div');
+                    currentTranscriptDiv.className = "speech-text text-orange";
+                    currentTranscriptDiv.innerText = "「...」";
+                    scrollBox.appendChild(currentTranscriptDiv);
                 }
 
+                finalizedText = "";
+
+                // 音声認識の結果をきれいに統合して蓄積する仕組み
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let currentText = "";
-                    for (let i = 0; i < event.results.length; ++i) {
-                        currentText += event.results[i][0].transcript;
+                    let interimText = "";
+                    let newFinal = "";
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            newFinal += transcript;
+                        } else {
+                            interimText += transcript;
+                        }
                     }
-                    
-                    if (activeParagraph && currentText.trim() !== "") {
-                        activeParagraph.innerText = "「" + currentText + "」";
+
+                    if (newFinal) {
+                        finalizedText += newFinal;
+                    }
+
+                    const displayText = finalizedText + interimText;
+                    if (currentTranscriptDiv && displayText.trim() !== "") {
+                        currentTranscriptDiv.innerText = "「" + displayText + "」";
                     }
                     
                     if (scrollBox) {
@@ -256,11 +271,15 @@
                     console.log("マイクエラー:", e.error);
                 };
 
-                // 【重要】勝手な再起動ループによるコロン音を完全に防止するため、
-                // 聞き取り中（status === 1）であっても、意図しない終了時は無理に再起動させず、
-                // ボタン操作にしっかり合わせる安全設計にする
+                // 聞き取り中（status === 1）のときだけ、万が一途切れてもスムーズに自動継続する安全なリレー
                 recognition.onend = function() {
-                    // 自動再起動によるノイズ音（コロン音）を発生させないようここでは何もしない
+                    if (currentStatus === 1) {
+                        try {
+                            recognition.start();
+                        } catch(err) {
+                            // すでに動いている場合の例外は無視
+                        }
+                    }
                 };
 
                 recognition.start();
@@ -277,7 +296,6 @@
                 // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
                 currentStatus = 1;
                 if (micBtn) micBtn.className = "mic-button state-listening";
-                activeParagraph = null; // 新規発話の準備
                 startSpeechRecognition();
                 
             } else if (currentStatus === 1) {
@@ -291,7 +309,7 @@
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
                 
-                // お母さんの最後の文を確定させ、その下にチャッピーのお返事を綺麗に積み重ねる
+                // チャッピーのお返事を綺麗に下に追加
                 if (scrollBox) {
                     const replyDiv = document.createElement('div');
                     replyDiv.className = "speech-text text-blue";
@@ -322,7 +340,6 @@
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
             
-            // 次の会話のときは履歴をリフレッシュ
             if (scrollBox) {
                 scrollBox.innerHTML = '<div class="speech-text text-black" id="welcome-msg">お話しするにゃん！🐾</div>';
             }
