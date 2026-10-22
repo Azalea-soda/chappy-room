@@ -69,7 +69,7 @@
             z-index: 20;
         }
 
-        /* 縦スクロールのみ */
+        /* 縦スクロールのみ（履歴がしっかり積み重なってスクロールする） */
         .scroll-area {
             width: 100%;
             height: 100%;
@@ -84,7 +84,7 @@
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
-        /* ★一番読みやすかった「字間（0.03em）」を完全キープ！ */
+        /* 読みやすい字間調整をキープ */
         .speech-text { 
             font-family: 'Kiwi Maru', sans-serif !important;
             font-size: 26px; 
@@ -93,7 +93,7 @@
             word-break: break-all;
             overflow-wrap: break-word;
             line-height: 1.35;
-            letter-spacing: 0.03em; 
+            letter-spacing: 0.03em;
             padding: 2px 0;
         }
         
@@ -204,6 +204,7 @@
         let talkCount = 0;     
         let recognition = null;
         let currentTranscriptDiv = null;
+        let finalTranscriptSaved = ""; // 確定した文を確実に蓄積する変数
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,24 +229,33 @@
                     const welcome = document.getElementById('welcome-msg');
                     if (welcome) welcome.remove();
 
-                    // 新しい発話を1つのきれいなブロックとして作成
+                    // お母さんの言葉を書き出す新しいブロックを作る
                     currentTranscriptDiv = document.createElement('div');
                     currentTranscriptDiv.className = "speech-text text-orange";
                     currentTranscriptDiv.innerText = "「...」";
                     scrollBox.appendChild(currentTranscriptDiv);
                 }
 
-                // ★重畳・連打バグを完全に防ぐため、ブラウザから返ってくる最新の「確定文」と「予測文」をそのまま1つにマージして表示する最も安全な仕組み
+                finalTranscriptSaved = "";
+
+                // 【完全修復版】単語ごとに途切れないよう、確定したフレーズをキレイに連結しつつ、リアルタイムに表示を更新する仕組み
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let latestText = "";
-                    for (let i = 0; i < event.results.length; ++i) {
-                        latestText += event.results[i][0].transcript;
+                    let interimText = "";
+                    
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscriptSaved += transcript;
+                        } else {
+                            interimText += transcript;
+                        }
                     }
                     
-                    if (currentTranscriptDiv) {
-                        currentTranscriptDiv.innerText = "「" + latestText + "」";
+                    const displayText = finalTranscriptSaved + interimText;
+                    if (currentTranscriptDiv && displayText.trim() !== "") {
+                        currentTranscriptDiv.innerText = "「" + displayText + "」";
                     }
                     
                     if (scrollBox) {
@@ -258,6 +268,7 @@
                 };
 
                 recognition.onend = function() {
+                    // 聞き取り中の間は、もし音声認識が切れても自動で再開して入力を守る
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
