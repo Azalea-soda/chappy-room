@@ -69,7 +69,7 @@
             z-index: 20;
         }
 
-        /* 縦スクロールのみ */
+        /* 縦スクロールのみ（履歴がしっかり積み重なってスクロールできる） */
         .scroll-area {
             width: 100%;
             height: 100%;
@@ -237,25 +237,21 @@
 
                 finalTranscriptSaved = "";
 
-                // 【バグ修正】音声認識の結果が4倍連打されないようにきれいにまとめるロジック
+                // 【修正版】単語で切れず、しっかり文として積み重ねてスクロールできる仕組み
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
-                    let accumulatedFinal = "";
                     let interimText = "";
-
-                    for (let i = 0; i < event.results.length; ++i) {
-                        const res = event.results[i];
-                        if (res.isFinal) {
-                            accumulatedFinal += res[0].transcript;
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscriptSaved += transcript;
                         } else {
-                            interimText += res[0].transcript;
+                            interimText += transcript;
                         }
                     }
                     
-                    finalTranscriptSaved = accumulatedFinal;
-                    const displayText = finalTranscriptSaved + (finalTranscriptSaved && interimText ? " " : "") + interimText;
-
+                    const displayText = finalTranscriptSaved + interimText;
                     if (currentTranscriptDiv) {
                         currentTranscriptDiv.innerText = "「" + displayText + "」";
                     }
