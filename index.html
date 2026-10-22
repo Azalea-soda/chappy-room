@@ -84,7 +84,7 @@
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.3); border-radius: 3px; }
         
-        /* 文字の読みやすさ改善：字間（letter-spacing）を自然に整え、言葉の区切りを見やすくする */
+        /* 読みやすい字間調整をキープ */
         .speech-text { 
             font-family: 'Kiwi Maru', sans-serif !important;
             font-size: 26px; 
@@ -93,7 +93,7 @@
             word-break: break-all;
             overflow-wrap: break-word;
             line-height: 1.35;
-            letter-spacing: 0.03em; /* 字間をキュッと自然にして、単語の余白と区別しやすく */
+            letter-spacing: 0.03em;
             padding: 2px 0;
         }
         
@@ -209,7 +209,7 @@
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                console.log("এইブラウザは音声認識に対応していません");
+                console.log("このブラウザは音声認識に対応していません");
                 return;
             }
 
@@ -237,19 +237,25 @@
 
                 finalTranscriptSaved = "";
 
+                // 【バグ修正】音声認識の結果が4倍連打されないようにきれいにまとめるロジック
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
+                    let accumulatedFinal = "";
                     let interimText = "";
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscriptSaved += event.results[i][0].transcript + " "; 
+
+                    for (let i = 0; i < event.results.length; ++i) {
+                        const res = event.results[i];
+                        if (res.isFinal) {
+                            accumulatedFinal += res[0].transcript;
                         } else {
-                            interimText += event.results[i][0].transcript;
+                            interimText += res[0].transcript;
                         }
                     }
                     
-                    const displayText = finalTranscriptSaved + interimText;
+                    finalTranscriptSaved = accumulatedFinal;
+                    const displayText = finalTranscriptSaved + (finalTranscriptSaved && interimText ? " " : "") + interimText;
+
                     if (currentTranscriptDiv) {
                         currentTranscriptDiv.innerText = "「" + displayText + "」";
                     }
@@ -264,7 +270,6 @@
                 };
 
                 recognition.onend = function() {
-                    // 聞き取り中のみ再開（コロン音の頻度を抑えるため、無駄な再生成を防ぐチェックを追加）
                     if (currentStatus === 1 && recognition) {
                         try { recognition.start(); } catch(err) {}
                     }
