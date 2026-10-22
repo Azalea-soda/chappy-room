@@ -69,7 +69,7 @@
             z-index: 20;
         }
 
-        /* 縦スクロールのみ（履歴がしっかり積み重なってスクロールする） */
+        /* 縦スクロールのみ（言葉が積み重なると下にスクロールする） */
         .scroll-area {
             width: 100%;
             height: 100%;
@@ -203,7 +203,7 @@
         let currentStatus = 0; // 0: 待機(白), 1: 聞き取り中(オレンジ), 2: お返事中(青)
         let talkCount = 0;     
         let recognition = null;
-        let currentTranscriptDiv = null;
+        let activeParagraph = null; // 現在お母さんが話している行の要素
 
         function startSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,14 +228,13 @@
                     const welcome = document.getElementById('welcome-msg');
                     if (welcome) welcome.remove();
 
-                    // リアルタイムで文字が伸びていくオレンジ色のプレビューボックスを作成
-                    currentTranscriptDiv = document.createElement('div');
-                    currentTranscriptDiv.className = "speech-text text-orange";
-                    currentTranscriptDiv.innerText = "「...」";
-                    scrollBox.appendChild(currentTranscriptDiv);
+                    // 新しい発話用の行を綺麗に作成する
+                    activeParagraph = document.createElement('div');
+                    activeParagraph.className = "speech-text text-orange";
+                    activeParagraph.innerText = "「...」";
+                    scrollBox.appendChild(activeParagraph);
                 }
 
-                // 【完璧なプレビュー表示】ブラウザの認識結果を素直に1つの文としてリアルタイム表示し続ける仕組み
                 recognition.onresult = function(event) {
                     if (currentStatus !== 1) return;
 
@@ -244,8 +243,8 @@
                         currentText += event.results[i][0].transcript;
                     }
                     
-                    if (currentTranscriptDiv && currentText.trim() !== "") {
-                        currentTranscriptDiv.innerText = "「" + currentText + "」";
+                    if (activeParagraph && currentText.trim() !== "") {
+                        activeParagraph.innerText = "「" + currentText + "」";
                     }
                     
                     if (scrollBox) {
@@ -257,10 +256,11 @@
                     console.log("マイクエラー:", e.error);
                 };
 
+                // 【重要】勝手な再起動ループによるコロン音を完全に防止するため、
+                // 聞き取り中（status === 1）であっても、意図しない終了時は無理に再起動させず、
+                // ボタン操作にしっかり合わせる安全設計にする
                 recognition.onend = function() {
-                    if (currentStatus === 1 && recognition) {
-                        try { recognition.start(); } catch(err) {}
-                    }
+                    // 自動再起動によるノイズ音（コロン音）を発生させないようここでは何もしない
                 };
 
                 recognition.start();
@@ -277,13 +277,13 @@
                 // 0: 待機(白) ⇒ 1: 聞き取り中(オレンジ)
                 currentStatus = 1;
                 if (micBtn) micBtn.className = "mic-button state-listening";
+                activeParagraph = null; // 新規発話の準備
                 startSpeechRecognition();
                 
             } else if (currentStatus === 1) {
                 // 1: 聞き取り中(オレンジ) ⇒ 2: お返事中(青)
                 currentStatus = 2;
                 
-                // 音声認識を完全に停止してシャットアウト
                 if (recognition) {
                     try { recognition.abort(); } catch(e) {}
                     recognition = null;
@@ -291,7 +291,7 @@
                 
                 if (micBtn) micBtn.className = "mic-button state-speaking";
                 
-                // チャッピーのお返事を新しく追加（これまでの履歴の下に綺麗にスクロールして残る）
+                // お母さんの最後の文を確定させ、その下にチャッピーのお返事を綺麗に積み重ねる
                 if (scrollBox) {
                     const replyDiv = document.createElement('div');
                     replyDiv.className = "speech-text text-blue";
@@ -322,7 +322,7 @@
 
             if (micBtn) micBtn.className = "mic-button state-waiting";
             
-            // 次の会話のときは履歴をリフレッシュして新しくスタート
+            // 次の会話のときは履歴をリフレッシュ
             if (scrollBox) {
                 scrollBox.innerHTML = '<div class="speech-text text-black" id="welcome-msg">お話しするにゃん！🐾</div>';
             }
