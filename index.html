@@ -63,7 +63,7 @@
       border-radius: 2px;
     }
 
-    /* 吹き出し共通スタイル（薄めの半透明で背景が透ける） */
+    /* 吹き出し共通スタイル */
     .chat-bubble {
       max-width: 85%;
       padding: 12px 18px;
@@ -82,7 +82,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* チャッピーの吹き出し（薄め半透明白） */
+    /* チャッピーの吹き出し */
     .bubble-chappy {
       align-self: flex-start;
       background: rgba(255, 255, 255, 0.55);
@@ -91,7 +91,7 @@
       border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
-    /* お母さんの吹き出し（薄め半透明オレンジ） */
+    /* お母さんの吹き出し */
     .bubble-user {
       align-self: flex-end;
       background: rgba(255, 140, 40, 0.55);
@@ -134,32 +134,34 @@
       flex-shrink: 0;
     }
 
-    /* カウンター行：絶対におかしくならないシンプルで安定した配置 */
+    /* カウンター行：文字サイズも大きくし、完全に下揃えでピタッと合わせる */
     #counter-text-line {
       display: flex;
-      align-items: center;
+      align-items: flex-end; /* 下部できっちり揃える */
       justify-content: center;
-      gap: 8px;
-      font-size: 1.15rem;
+      gap: 6px;
+      font-size: 1.25rem; /* 黒文字を小さくさせない！しっかり大きく */
       color: #222222;
-      height: 50px; /* 高さをしっかり確保して暴走を防ぐ */
+      line-height: 1;
     }
 
-    /* 花丸アイコン（大きくて綺麗なサイズで固定） */
+    /* ① 花丸アイコン：大きさをしっかり 54px で固定 */
     #hanamaru-icon {
-      width: 46px;
-      height: 46px;
+      width: 54px;
+      height: 54px;
       object-fit: contain;
       display: none; /* 達成時に表示 */
-      vertical-align: middle;
+      margin-right: 4px;
+      vertical-align: bottom;
     }
 
-    /* カウンター数字（大きく・赤色） */
+    /* ② カウンター数字：大きく・赤色・下揃えを死守 */
     #talk-count {
       font-size: 1.8rem;
       font-weight: 700;
       color: #e53935;
-      margin: 0 2px;
+      margin: 0 3px;
+      line-height: 0.9;
     }
 
     /* マイクボタン（🎙️で固定） */
