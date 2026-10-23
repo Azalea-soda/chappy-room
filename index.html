@@ -27,16 +27,17 @@
       background-color: #1a1a2e;
     }
 
-    /* 全体背景（冬のお部屋イメージ） */
+    /* 全体背景（冬のお部屋 bg-winter.png） */
     #app-container {
       position: relative;
       width: 100%;
       height: 100%;
       display: flex;
       flex-direction: column;
-      background: linear-gradient(180deg, #2b3a4a 0%, #1d2636 100%);
+      background-image: url('bg-winter.png');
       background-size: cover;
       background-position: center;
+      background-repeat: no-repeat;
     }
 
     /* 1. 会話スクロールエリア（画面上部〜中央） */
@@ -46,22 +47,21 @@
       padding: 20px 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       -webkit-overflow-scrolling: touch;
     }
 
-    /* スクロールバーのカスタマイズ */
     #chat-scroll-area::-webkit-scrollbar {
       width: 6px;
     }
     #chat-scroll-area::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.3);
       border-radius: 3px;
     }
 
-    /* 共通吹き出しスタイル */
+    /* 共通吹き出しスタイル（ガラス風・半透明） */
     .chat-bubble {
-      max-width: 78%;
+      max-width: 80%;
       padding: 12px 18px;
       border-radius: 20px;
       font-size: 1.15rem;
@@ -69,7 +69,7 @@
       word-wrap: break-word;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       animation: fadeIn 0.3s ease-out;
     }
 
@@ -78,73 +78,76 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 左側：チャッピーの吹き出し */
+    /* 左側：チャッピーの吹き出し（白の半透明） */
     .bubble-chappy {
       align-self: flex-start;
       background: rgba(255, 255, 255, 0.85);
-      color: #222;
+      color: #222222;
       border-bottom-left-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
     /* 右側：お母さんの吹き出し（オレンジ半透明） */
     .bubble-user {
       align-self: flex-end;
-      background: rgba(255, 140, 0, 0.75);
+      background: rgba(255, 120, 0, 0.8);
       color: #ffffff;
       border-bottom-right-radius: 4px;
-      border: 1px solid rgba(255, 180, 100, 0.5);
+      border: 1px solid rgba(255, 180, 100, 0.6);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
-    /* 2. チャッピーの聖域エリア（画面下部） */
+    /* 2. チャッピーの聖域エリア（会話が上にかぶらない保護エリア） */
     #character-area {
-      height: 220px;
+      height: 200px;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: flex-end;
-      pointer-events: none; /* 会話エリアのスクロールを邪魔しない */
-      background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+      padding-bottom: 5px;
     }
 
     #chappy-image {
       max-height: 100%;
       max-width: 80%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
     }
 
-    /* 3. コントロールバー（マイクボタン） */
+    /* 3. コントロールバー（白ベースの待機ボタン） */
     #control-bar {
       height: 90px;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(10px);
       display: flex;
       justify-content: center;
       align-items: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
       z-index: 10;
     }
 
+    /* 待機ボタン：白色 */
     #mic-button {
-      width: 68px;
-      height: 68px;
+      width: 70px;
+      height: 70px;
       border-radius: 50%;
       border: none;
-      background: linear-gradient(135deg, #00c6ff, #0072ff);
-      color: white;
+      background: #ffffff;
+      color: #333333;
       font-size: 1.8rem;
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
+    /* 録音中ボタン：オレンジ・赤色に点滅 */
     #mic-button.recording {
       background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      color: white;
       box-shadow: 0 4px 15px rgba(255, 65, 108, 0.6);
       transform: scale(1.08);
       animation: pulse 1.5s infinite;
@@ -167,10 +170,9 @@
       </div>
     </div>
 
-    <!-- チャッピーの聖域エリア -->
+    <!-- チャッピーの聖域エリア（cat-default.png） -->
     <div id="character-area">
-      <!-- ※チャッピーの画像ファイル名に合わせて書き換えてね -->
-      <img id="chappy-image" src="chappy.png" alt="チャッピー">
+      <img id="chappy-image" src="cat-default.png" alt="チャッピー">
     </div>
 
     <!-- コントロールバー -->
@@ -185,7 +187,6 @@
     let isRecording = false;
     let recognition = null;
 
-    // 音声認識の初期化
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
@@ -202,20 +203,14 @@
         const text = event.results[0][0].transcript;
         if (text.trim() !== "") {
           addUserBubble(text);
-          // 擬似的なチャッピーのお返事（※ここをAIやお返事機能に繋げます）
           setTimeout(() => {
             addChappyBubble("しっかり聞こえたにゃ！「" + text + "」だね🐾");
           }, 800);
         }
       };
 
-      recognition.onerror = () => {
-        stopRecording();
-      };
-
-      recognition.onend = () => {
-        stopRecording();
-      };
+      recognition.onerror = () => { stopRecording(); };
+      recognition.onend = () => { stopRecording(); };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
@@ -234,7 +229,7 @@
       micButton.classList.remove('recording');
     }
 
-    // お母さんの吹き出しを追加（オレンジ半透明）
+    // お母さんの吹き出し（右側・オレンジ半透明）
     function addUserBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-user';
@@ -243,7 +238,7 @@
       scrollToBottom();
     }
 
-    // チャッピーの吹き出しを追加（左側）
+    // チャッピーの吹き出し（左側・白半透明）
     function addChappyBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-chappy';
@@ -252,7 +247,6 @@
       scrollToBottom();
     }
 
-    // 常に最新メッセージへスムーズにスクロール
     function scrollToBottom() {
       chatScrollArea.scrollTo({
         top: chatScrollArea.scrollHeight,
