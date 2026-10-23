@@ -40,15 +40,42 @@
       background-repeat: no-repeat;
     }
 
+    /* 上部：お話しカウンター ＆ 花丸表示エリア */
+    #counter-bar {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 6px 14px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      font-size: 0.95rem;
+      color: #333;
+      font-weight: 500;
+    }
+
+    #hanamaru-icon {
+      width: 26px;
+      height: 26px;
+      display: none; /* カウント達成時に表示 */
+      object-fit: contain;
+    }
+
     /* 1. 会話スクロールエリア（画面上部〜中央） */
     #chat-scroll-area {
       flex: 1;
       overflow-y: auto;
-      padding: 20px 16px;
+      padding: 60px 16px 10px 16px; /* カウンターと被らないよう上部に余裕 */
       display: flex;
       flex-direction: column;
       gap: 14px;
       -webkit-overflow-scrolling: touch;
+      z-index: 5;
     }
 
     #chat-scroll-area::-webkit-scrollbar {
@@ -59,9 +86,9 @@
       border-radius: 3px;
     }
 
-    /* 共通吹き出しスタイル（ガラス風・半透明） */
+    /* 共通吹き出しスタイル（ガラス風・お部屋が透ける半透明） */
     .chat-bubble {
-      max-width: 80%;
+      max-width: 82%;
       padding: 12px 18px;
       border-radius: 20px;
       font-size: 1.15rem;
@@ -81,8 +108,8 @@
     /* 左側：チャッピーの吹き出し（白の半透明） */
     .bubble-chappy {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.85);
-      color: #222222;
+      background: rgba(255, 255, 255, 0.75);
+      color: #1a1a1a;
       border-bottom-left-radius: 4px;
       border: 1px solid rgba(255, 255, 255, 0.6);
     }
@@ -90,79 +117,100 @@
     /* 右側：お母さんの吹き出し（オレンジ半透明） */
     .bubble-user {
       align-self: flex-end;
-      background: rgba(255, 120, 0, 0.8);
+      background: rgba(255, 130, 0, 0.75);
       color: #ffffff;
       border-bottom-right-radius: 4px;
       border: 1px solid rgba(255, 180, 100, 0.6);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
-    /* 2. チャッピーの聖域エリア（会話が上にかぶらない保護エリア） */
+    /* 2. チャッピーの聖域エリア（元のしっかり大きいサイズを維持） */
     #character-area {
-      height: 200px;
+      height: 32vh; /* 以前の存在感のある大きさをしっかり確保 */
+      min-height: 220px;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: flex-end;
       pointer-events: none;
-      padding-bottom: 5px;
+      z-index: 2;
     }
 
     #chappy-image {
       max-height: 100%;
-      max-width: 80%;
+      max-width: 90%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
     }
 
-    /* 3. コントロールバー（白ベースの待機ボタン） */
+    /* 3. 下部コントロール＆白ボックスエリア */
     #control-bar {
-      height: 90px;
-      background: rgba(15, 23, 42, 0.85);
+      min-height: 110px;
+      background: rgba(255, 255, 255, 0.92); /* 白ベースのボックスエリア */
       backdrop-filter: blur(10px);
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      padding: 12px 16px;
       z-index: 10;
     }
 
-    /* 待機ボタン：白色 */
+    /* ボタン共通＆各ステートの光る輪 */
     #mic-button {
-      width: 70px;
-      height: 70px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       border: none;
-      background: #ffffff;
-      color: #333333;
       font-size: 1.8rem;
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
     }
 
-    /* 録音中ボタン：オレンジ・赤色に点滅 */
-    #mic-button.recording {
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
-      color: white;
-      box-shadow: 0 4px 15px rgba(255, 65, 108, 0.6);
-      transform: scale(1.08);
-      animation: pulse 1.5s infinite;
+    /* ① 待機中：白ボタン ＋ グレーの光る輪 */
+    #mic-button.state-idle {
+      background: #ffffff;
+      color: #444444;
+      box-shadow: 0 0 0 6px rgba(200, 200, 200, 0.4), 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0.7); }
-      70% { box-shadow: 0 0 0 15px rgba(255, 65, 108, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0); }
+    /* ② 聞き取り中：オレンジボタン ＋ オレンジの光る輪 */
+    #mic-button.state-listening {
+      background: #ff8c00;
+      color: #ffffff;
+      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.4), 0 4px 15px rgba(255, 140, 0, 0.6);
+      animation: pulse-orange 1.5s infinite;
+    }
+
+    /* ③ チャッピーお返事中：青ボタン ＋ オレンジの光る輪 */
+    #mic-button.state-speaking {
+      background: #0072ff;
+      color: #ffffff;
+      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 15px rgba(0, 114, 255, 0.5);
+    }
+
+    @keyframes pulse-orange {
+      0% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 0 4px 15px rgba(255, 140, 0, 0.4); }
+      70% { box-shadow: 0 0 0 14px rgba(255, 140, 0, 0), 0 4px 15px rgba(255, 140, 0, 0.4); }
+      100% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0), 0 4px 15px rgba(255, 140, 0, 0.4); }
     }
   </style>
 </head>
 <body>
 
   <div id="app-container">
+    <!-- カウンター＆花丸 -->
+    <div id="counter-bar">
+      <span>お話し <strong id="talk-count">0</strong> 回</span>
+      <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
+    </div>
+
     <!-- 会話スクロールエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
@@ -175,15 +223,19 @@
       <img id="chappy-image" src="cat-default.png" alt="チャッピー">
     </div>
 
-    <!-- コントロールバー -->
+    <!-- 下部コントロール・白ボックスエリア -->
     <div id="control-bar">
-      <button id="mic-button" onclick="toggleSpeech()">🎙️</button>
+      <button id="mic-button" class="state-idle" onclick="toggleSpeech()">🎙️</button>
     </div>
   </div>
 
   <script>
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
+    const talkCountEl = document.getElementById('talk-count');
+    const hanamaruIcon = document.getElementById('hanamaru-icon');
+
+    let talkCount = 0;
     let isRecording = false;
     let recognition = null;
 
@@ -196,21 +248,31 @@
 
       recognition.onstart = () => {
         isRecording = true;
-        micButton.classList.add('recording');
+        setButtonState('listening'); // オレンジ＋オレンジ輪
       };
 
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
         if (text.trim() !== "") {
           addUserBubble(text);
+          incrementCount();
+
+          // チャッピーのお返事中ステート（青＋オレンジ輪）
+          setButtonState('speaking');
+
           setTimeout(() => {
             addChappyBubble("しっかり聞こえたにゃ！「" + text + "」だね🐾");
-          }, 800);
+            setButtonState('idle'); // 待機状態（白＋グレー輪）に戻る
+          }, 1200);
         }
       };
 
-      recognition.onerror = () => { stopRecording(); };
-      recognition.onend = () => { stopRecording(); };
+      recognition.onerror = () => { setButtonState('idle'); };
+      recognition.onend = () => { 
+        if (micButton.classList.contains('state-listening')) {
+          setButtonState('idle');
+        }
+      };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
@@ -219,14 +281,34 @@
       if (!recognition) return;
       if (isRecording) {
         recognition.stop();
+        setButtonState('idle');
       } else {
         recognition.start();
       }
     }
 
-    function stopRecording() {
-      isRecording = false;
-      micButton.classList.remove('recording');
+    // ボタンの状態制御（白+グレー輪 / オレンジ+オレンジ輪 / 青+オレンジ輪）
+    function setButtonState(state) {
+      micButton.className = '';
+      if (state === 'idle') {
+        isRecording = false;
+        micButton.classList.add('state-idle');
+      } else if (state === 'listening') {
+        isRecording = true;
+        micButton.classList.add('state-listening');
+      } else if (state === 'speaking') {
+        isRecording = false;
+        micButton.classList.add('state-speaking');
+      }
+    }
+
+    // カウントアップ＆花丸表示
+    function incrementCount() {
+      talkCount++;
+      talkCountEl.textContent = talkCount;
+      if (talkCount >= 3) {
+        hanamaruIcon.style.display = 'block';
+      }
     }
 
     // お母さんの吹き出し（右側・オレンジ半透明）
