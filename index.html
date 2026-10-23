@@ -16,7 +16,6 @@
       padding: 0;
       font-family: 'Kiwi Maru', serif;
       font-weight: 700;
-      letter-spacing: 0.03em;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -124,7 +123,7 @@
       background: #ffffff;
       border-top-left-radius: 26px;
       border-top-right-radius: 26px;
-      padding: 14px 16px 22px 16px;
+      padding: 14px 12px 20px 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -134,34 +133,37 @@
       flex-shrink: 0;
     }
 
-    /* カウンター行：文字サイズも大きくし、完全に下揃えでピタッと合わせる */
+    /* カウンター行：文字を下揃えで完璧に整列 */
     #counter-text-line {
-      display: flex;
-      align-items: flex-end; /* 下部できっちり揃える */
+      display: inline-flex;
+      align-items: baseline; /* 文字の下端（ベースライン）にピタッと合わせる */
       justify-content: center;
-      gap: 6px;
-      font-size: 1.25rem; /* 黒文字を小さくさせない！しっかり大きく */
+      gap: 2px;
+      font-size: 1.25rem; /* 大きな文字サイズを維持 */
       color: #222222;
-      line-height: 1;
+      letter-spacing: -0.02em; /* 文字間を詰めてきれいに収める */
+      width: 100%;
+      text-align: center;
     }
 
-    /* ① 花丸アイコン：大きさをしっかり 54px で固定 */
+    /* ① 花丸アイコン：約10mmサイズ（72px）へしっかり拡大！ */
     #hanamaru-icon {
-      width: 54px;
-      height: 54px;
+      width: 72px;
+      height: 72px;
       object-fit: contain;
       display: none; /* 達成時に表示 */
       margin-right: 4px;
       vertical-align: bottom;
+      transform: translateY(12px); /* 10mmの大きさを自然な高さに微調整 */
     }
 
-    /* ② カウンター数字：大きく・赤色・下揃えを死守 */
+    /* ②・③ 数字（ベースライン下揃え） */
     #talk-count {
-      font-size: 1.8rem;
+      font-size: 1.9rem;
       font-weight: 700;
       color: #e53935;
-      margin: 0 3px;
-      line-height: 0.9;
+      margin: 0 4px;
+      line-height: 1;
     }
 
     /* マイクボタン（🎙️で固定） */
