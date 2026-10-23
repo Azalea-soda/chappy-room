@@ -15,7 +15,7 @@
       margin: 0;
       padding: 0;
       font-family: 'Kiwi Maru', serif;
-      font-weight: 700; /* ⑤ 全体の文字を少し太くしっかり見やすく */
+      font-weight: 700; /* 全体の文字をしっかり太く */
       letter-spacing: 0.03em;
       user-select: none;
       -webkit-user-select: none;
@@ -63,7 +63,7 @@
       border-radius: 2px;
     }
 
-    /* 吹き出し共通スタイル */
+    /* 吹き出し共通スタイル（薄めの半透明で背景がしっかり透ける） */
     .chat-bubble {
       max-width: 85%;
       padding: 12px 18px;
@@ -82,26 +82,26 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ① 左側：チャッピーの吹き出し（背景がしっかり見える薄めの半透明白） */
+    /* チャッピーの吹き出し（薄め半透明白） */
     .bubble-chappy {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.55); /* 以前より透明度を上げてしっかり透けるように */
+      background: rgba(255, 255, 255, 0.55);
       color: #111111;
       border-bottom-left-radius: 4px;
       border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
-    /* ① 右側：お母さんの吹き出し（背景がしっかり見える薄めの半透明オレンジ） */
+    /* お母さんの吹き出し（薄め半透明オレンジ） */
     .bubble-user {
       align-self: flex-end;
-      background: rgba(255, 140, 40, 0.55); /* 以前より透明度を上げてしっかり透けるように */
+      background: rgba(255, 140, 40, 0.55);
       color: #ffffff;
       border-bottom-right-radius: 4px;
       border: 1px solid rgba(255, 180, 100, 0.6);
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
-    /* 2. ④ 中央：チャッピー画像エリア（白ボックスから5mm〜少し上に持ち上げ） */
+    /* 2. 中央：チャッピー画像エリア（白ボックスから5mm持ち上げ） */
     #character-area {
       flex: 1;
       display: flex;
@@ -109,7 +109,7 @@
       align-items: flex-end;
       pointer-events: none;
       z-index: 5;
-      padding-bottom: 12px; /* 下ボックスとの間に余裕を持たせる（約5mm〜の調整） */
+      padding-bottom: 12px;
     }
 
     #chappy-image {
@@ -119,7 +119,7 @@
       filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
     }
 
-    /* 3. 下部：ホワイトカード領域（ボタンがはみ出さない安全設計） */
+    /* 3. 下部：ホワイトカード領域（ボタンが絶対にはみ出さない） */
     #bottom-card {
       background: #ffffff;
       border-top-left-radius: 26px;
@@ -134,26 +134,26 @@
       flex-shrink: 0;
     }
 
-    /* ③ カウンター行（数字を下揃え `align-items: baseline` に修正） */
+    /* カウンター行（下揃え） */
     #counter-text-line {
       display: flex;
-      align-items: baseline; /* ③ 文字のベースライン（下揃え）にピタッと合わせる */
+      align-items: baseline; /* 文字の下端にぴったり合わせる */
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       font-size: 1.2rem;
       color: #222222;
     }
 
-    /* 花丸アイコン（しっかり大きめ） */
+    /* 花丸アイコン（大きく・文字の下にピタッと自然に配置） */
     #hanamaru-icon {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
       object-fit: contain;
       display: none; /* 達成時に表示 */
-      transform: translateY(4px); /* 微調整で下揃えに馴染ませる */
+      vertical-align: baseline;
     }
 
-    /* ③ カウンターの数字（大きく・赤色・下揃え） */
+    /* カウンター数字（大きく・赤色・下揃え） */
     #talk-count {
       font-size: 1.7rem;
       font-weight: 700;
@@ -162,7 +162,7 @@
       line-height: 1;
     }
 
-    /* マイクボタン */
+    /* マイクボタン（アイコンは🎙️のまま絶対変更しない） */
     #mic-button {
       width: 72px;
       height: 72px;
@@ -176,14 +176,14 @@
       transition: all 0.3s ease;
     }
 
-    /* 待機中：やわらかい白 ＋ 淡いグレーの輪っか */
+    /* 待機中：白 ＋ グレーの輪 */
     #mic-button.state-idle {
       background: #ffffff;
       color: #555555;
       box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* 聞き取り中（お母さんのターン）：ソフトなオレンジ ＋ オレンジの光る輪 */
+    /* 聞き取り中（お母さんのターン）：オレンジ ＋ オレンジの輪 */
     #mic-button.state-listening {
       background: #ff9d3b;
       color: #ffffff;
@@ -191,7 +191,7 @@
       animation: pulse-orange 1.5s infinite;
     }
 
-    /* チャッピーお返事中：ソフトなブルー ＋ 青色の光る輪 */
+    /* チャッピー返事中：ブルー ＋ 青の輪 */
     #mic-button.state-speaking {
       background: #4a90e2;
       color: #ffffff;
@@ -209,14 +209,14 @@
 
   <div id="app-container">
     
-    <!-- 上部：LINE風スクロール吹き出しエリア（背景が見える薄めの半透明） -->
+    <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
         お話しするにゃ！🐾
       </div>
     </div>
 
-    <!-- 中央：チャッピー画像（少し上にあげた配置） -->
+    <!-- 中央：チャッピー画像 -->
     <div id="character-area">
       <img id="chappy-image" src="cat-default.png" alt="チャッピー">
     </div>
@@ -228,7 +228,7 @@
         今日 <span id="talk-count">0</span> 回お話ししたにゃ🐾
       </div>
 
-      <!-- 手動コントロールボタン -->
+      <!-- アイコンは常に 🎙️ のまま固定 -->
       <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">🎙️</button>
     </div>
 
@@ -243,22 +243,34 @@
     let talkCount = 0;
     let isListening = false;
     let recognition = null;
-    let accumulatedTranscript = ''; // A案：話した言葉をどんどん繋げて溜めておく変数
+    let sessionUserTexts = []; // 今回のターンで話された言葉（吹き出し）のリスト
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
-      recognition.continuous = true;     // 途中で勝手に切れないようにする
-      recognition.interimResults = true; // 途中結果も拾う
+      recognition.continuous = true;     // 自動で途切れても停止させない
+      recognition.interimResults = false; // 確定した言葉だけを処理する
 
+      // 一言一言が確定する（息を呑む・文末になる）たびに呼ばれる
       recognition.onresult = (event) => {
-        let currentSessionText = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          currentSessionText += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            const text = event.results[i][0].transcript.trim();
+            if (text !== "") {
+              // 即座にオレンジの吹き出しを画面に追加！
+              addUserBubble(text);
+              sessionUserTexts.push(text);
+            }
+          }
         }
-        // これまで確定した分＋今回のセッションの言葉を結合して保持
-        accumulatedTranscript = currentSessionText;
+      };
+
+      // スマホ側の都合で勝手に止まっても、お母さんがボタンを押すまでは自動再開する
+      recognition.onend = () => {
+        if (isListening) {
+          try { recognition.start(); } catch(e) {}
+        }
       };
 
       recognition.onerror = () => {};
@@ -266,60 +278,58 @@
       alert("お使いのブラウザは音声認識に対応していません。");
     }
 
-    // 手動コントロール：ボタンを押してスタート、もう一度押して確定
+    // 手動コントロールボタンの処理
     function toggleManualSpeech() {
       if (!recognition) return;
 
       if (!isListening) {
-        // 【スタート】白ボタン → オレンジに変化（お母さんのターン）
-        accumulatedTranscript = '';
+        // 【スタート】白ボタン → オレンジ（お母さんのターン）
+        sessionUserTexts = [];
+        isListening = true;
+        setButtonState('listening');
         try {
           recognition.start();
         } catch(e) {}
-        
-        isListening = true;
-        setButtonState('listening');
       } else {
-        // 【確定・ストップ】お母さんが話し終えてもう一度ボタンを押した瞬間
+        // 【確定・ストップ】お母さんがもう一度ボタンを押した瞬間
+        isListening = false;
         try {
           recognition.stop();
         } catch(e) {}
-        
-        isListening = false;
 
-        // 溜まった言葉をまとめて吹き出しに出力
+        // チャッピーのターンへ（青色）
+        setButtonState('speaking');
+
         setTimeout(() => {
-          const spokenText = accumulatedTranscript.trim() !== "" ? accumulatedTranscript.trim() : "（お話し中…）";
-          addUserBubble(spokenText);
-          incrementCount();
-
-          // チャッピーのターン（ソフトな青色＋青輪）
-          setButtonState('speaking');
-
-          setTimeout(() => {
-            addChappyBubble("しっかり聞いたにゃ。「" + spokenText + "」だね🐾");
-            setButtonState('idle'); // 待機状態に戻る
-          }, 1500);
-        }, 400);
+          if (sessionUserTexts.length > 0) {
+            // お母さんが話した内容を全部合わせてチャッピーが優しく返事
+            const fullTalk = sessionUserTexts.join(' ');
+            addChappyBubble("しっかり聞いたにゃ。「" + fullTalk + "」だね🐾");
+            incrementCount();
+          } else {
+            // もし何も声が拾えなかった場合（余計なテキストは出さず優しく案内）
+            addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+          }
+          
+          setButtonState('idle'); // 待機状態（白）に戻る
+        }, 1200);
       }
     }
 
-    // ボタンの状態切り替え
+    // ボタンの状態切り替え（アイコンは 🎙️ のまま固定！）
     function setButtonState(state) {
       micButton.className = '';
+      micButton.textContent = '🎙️'; // 常にマイクアイコンで固定
       if (state === 'idle') {
         micButton.classList.add('state-idle');
-        micButton.textContent = '🎙️';
       } else if (state === 'listening') {
         micButton.classList.add('state-listening');
-        micButton.textContent = '⏹️';
       } else if (state === 'speaking') {
         micButton.classList.add('state-speaking');
-        micButton.textContent = '🐾';
       }
     }
 
-    // カウントアップ＆花丸表示ロジック
+    // カウントアップ＆花丸表示
     function incrementCount() {
       talkCount++;
       talkCountEl.textContent = talkCount;
