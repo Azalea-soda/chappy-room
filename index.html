@@ -145,14 +145,15 @@
       text-align: center;
     }
 
-    /* 花丸アイコン：サイズはそのままで、文字列のベースラインに綺麗に乗せる */
+    /* 花丸アイコン：大きさを42pxに微増（文字の一回り大きい存在感で綺麗な一本ラインに収める） */
     #hanamaru-icon {
-      width: 30px;
-      height: 30px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
       display: none; /* 達成時に表示 */
       vertical-align: baseline;
       flex-shrink: 0;
+      transform: translateY(4px); /* 大きくした分、下端ラインを微調整して綺麗に合わせる */
     }
 
     /* カウンター数字：大きく・赤色・下揃え（ベースライン揃え） */
