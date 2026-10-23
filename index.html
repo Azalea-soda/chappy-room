@@ -134,34 +134,32 @@
       flex-shrink: 0;
     }
 
-    /* カウンター行（下揃えでピッタリ整列） */
+    /* カウンター行：絶対におかしくならないシンプルで安定した配置 */
     #counter-text-line {
       display: flex;
-      align-items: flex-end; /* 全要素を下揃えに統一 */
+      align-items: center;
       justify-content: center;
-      gap: 6px;
-      font-size: 1.2rem;
+      gap: 8px;
+      font-size: 1.15rem;
       color: #222222;
-      line-height: 1;
+      height: 50px; /* 高さをしっかり確保して暴走を防ぐ */
     }
 
-    /* ① 花丸アイコン（さらにしっかり大きく 58px！） */
+    /* 花丸アイコン（大きくて綺麗なサイズで固定） */
     #hanamaru-icon {
-      width: 58px;
-      height: 58px;
+      width: 46px;
+      height: 46px;
       object-fit: contain;
       display: none; /* 達成時に表示 */
-      margin-right: 4px;
+      vertical-align: middle;
     }
 
-    /* ② カウンター数字（文字のベースライン（一番下）に下揃え） */
+    /* カウンター数字（大きく・赤色） */
     #talk-count {
-      font-size: 1.9rem;
+      font-size: 1.8rem;
       font-weight: 700;
       color: #e53935;
       margin: 0 2px;
-      line-height: 0.9; /* 下揃えを美しく保つ調整 */
-      display: inline-block;
     }
 
     /* マイクボタン（🎙️で固定） */
