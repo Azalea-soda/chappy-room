@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>チャッピーとお話し</title>
-  <!-- Google Fonts: Kiwi Maru (太め500) -->
+  <!-- Google Fonts: Kiwi Maru -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500;700&display=swap" rel="stylesheet">
 
   <style>
     * {
@@ -15,7 +15,7 @@
       margin: 0;
       padding: 0;
       font-family: 'Kiwi Maru', serif;
-      font-weight: 500; /* 元の太くてはっきりした文字 */
+      font-weight: 500;
       letter-spacing: 0.03em;
       user-select: none;
       -webkit-user-select: none;
@@ -42,21 +42,15 @@
       background-repeat: no-repeat;
     }
 
-    /* 上部：LINE風会話スクロールエリア（元の半透明ボックスの位置とデザイン） */
+    /* 上部：LINE风スクロール吹き出しエリア（外枠なし・冬背景の直置き） */
     #chat-scroll-area {
-      height: 38%; /* 元の上のすりガラスボックスと同じ高さ感 */
-      margin: 20px 20px 0 20px;
-      padding: 16px;
+      height: 42%;
+      margin: 16px 20px 0 20px;
+      padding: 8px 4px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.45); /* 元の半透明ボックス背景 */
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
       -webkit-overflow-scrolling: touch;
       z-index: 10;
     }
@@ -65,18 +59,22 @@
       width: 4px;
     }
     #chat-scroll-area::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(255, 255, 255, 0.3);
       border-radius: 2px;
     }
 
-    /* 共通吹き出しスタイル */
+    /* 吹き出し共通スタイル */
     .chat-bubble {
-      max-width: 85%;
-      padding: 10px 16px;
-      border-radius: 18px;
-      font-size: 1.25rem; /* しっかり太く見やすい大きさ */
+      max-width: 82%;
+      padding: 12px 18px;
+      border-radius: 20px;
+      font-size: 1.25rem;
+      font-weight: 500;
       line-height: 1.4;
       word-wrap: break-word;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       animation: fadeIn 0.25s ease-out;
     }
 
@@ -85,49 +83,48 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 左側：チャッピーの吹き出し（くっきり白） */
+    /* 左側：チャッピーの吹き出し（白・背景が透ける半透明） */
     .bubble-chappy {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.9);
       color: #222222;
       border-bottom-left-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
-    /* 右側：お母さんの吹き出し（オレンジ半透明） */
+    /* 右側：お母さんの吹き出し（やわらかいオレンジ半透明） */
     .bubble-user {
       align-self: flex-end;
-      background: rgba(255, 130, 0, 0.85);
+      background: rgba(255, 140, 40, 0.85);
       color: #ffffff;
       border-bottom-right-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 180, 100, 0.5);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     }
 
-    /* 中央：チャッピー画像エリア（元のドーンと大きい配置） */
+    /* 中央：チャッピー画像エリア（大きな存在感） */
     #character-area {
       flex: 1;
       display: flex;
       justify-content: center;
       align-items: flex-end;
       pointer-events: none;
-      padding-bottom: 0px;
       z-index: 5;
     }
 
     #chappy-image {
-      max-height: 95%;
-      max-width: 90%;
+      max-height: 98%;
+      max-width: 92%;
       object-fit: contain;
       filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
     }
 
-    /* 下部：正解画像通りの白ボックスエリア */
+    /* 下部：正解画像通りの白カードエリア */
     #bottom-card {
       background: #ffffff;
       border-top-left-radius: 28px;
       border-top-right-radius: 28px;
-      padding: 20px 16px 28px 16px;
+      padding: 18px 16px 26px 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -136,29 +133,33 @@
       z-index: 10;
     }
 
-    /* 正解画像通りの「今日 0 回お話ししたにゃ🐾」表示 */
+    /* 今日 X 回お話ししたにゃ🐾 ＆ 花丸ライン */
     #counter-text-line {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       font-size: 1.3rem;
+      font-weight: 500;
       color: #222222;
     }
 
+    /* ご褒美のはなまるアイコン（達成時にくっきり表示） */
     #hanamaru-icon {
-      width: 32px;
-      height: 32px;
+      width: 38px;
+      height: 38px;
       object-fit: contain;
+      display: none; /* 0回の時は非表示。達成時（例: 1回以上）に表示 */
     }
 
     #talk-count {
       font-size: 1.5rem;
-      color: #e53935; /* 赤色でアクセント */
+      font-weight: 700;
+      color: #e53935; /* はっきり目立つ赤色 */
       margin: 0 2px;
     }
 
-    /* マイクボタン（3つの状態・光る輪） */
+    /* マイクボタン（ソフトな色合い ＆ ターンを示す輪っかの光） */
     #mic-button {
       width: 76px;
       height: 76px;
@@ -169,29 +170,29 @@
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
     }
 
-    /* ① 待機中：白ボタン ＋ グレーの光る輪 */
+    /* ① 待機中：やわらかい白 ＋ 淡いグレーの輪っか */
     #mic-button.state-idle {
       background: #ffffff;
       color: #555555;
-      box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 12px rgba(0,0,0,0.12);
     }
 
-    /* ② 聞き取り中：オレンジボタン ＋ オレンジの光る輪 */
+    /* ② 聞き取り中（お母さんのターン）：ソフトなやさしいオレンジ ＋ オレンジの光る輪 */
     #mic-button.state-listening {
-      background: #ff8c00;
+      background: #ff9d3b;
       color: #ffffff;
-      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.4), 0 4px 16px rgba(255, 140, 0, 0.5);
+      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 16px rgba(255, 140, 0, 0.3);
       animation: pulse-orange 1.5s infinite;
     }
 
-    /* ③ チャッピーお返事中：青ボタン ＋ オレンジの光る輪 */
+    /* ③ チャッピーお返事中（チャッピーのターン）：ソフトなやさしいブルー ＋ 青色の光る輪 */
     #mic-button.state-speaking {
-      background: #0072ff;
+      background: #4a90e2;
       color: #ffffff;
-      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 16px rgba(0, 114, 255, 0.5);
+      box-shadow: 0 0 0 8px rgba(74, 144, 226, 0.5), 0 4px 16px rgba(74, 144, 226, 0.3);
     }
 
     @keyframes pulse-orange {
@@ -205,7 +206,7 @@
 
   <div id="app-container">
     
-    <!-- 上部：LINE風スクロール吹き出しエリア（旧・文字表示エリアの位置） -->
+    <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
         お話しするにゃ！🐾
@@ -217,7 +218,7 @@
       <img id="chappy-image" src="cat-default.png" alt="チャッピー">
     </div>
 
-    <!-- 下部：正解画像通りの白ボックスエリア -->
+    <!-- 下部：ホワイトカード領域 -->
     <div id="bottom-card">
       <div id="counter-text-line">
         <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
@@ -233,6 +234,7 @@
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
     const talkCountEl = document.getElementById('talk-count');
+    const hanamaruIcon = document.getElementById('hanamaru-icon');
 
     let talkCount = 0;
     let isRecording = false;
@@ -247,7 +249,7 @@
 
       recognition.onstart = () => {
         isRecording = true;
-        setButtonState('listening'); // オレンジ＋オレンジ輪
+        setButtonState('listening'); // お母さんのターン（パステルオレンジ＋オレンジ輪）
       };
 
       recognition.onresult = (event) => {
@@ -256,7 +258,7 @@
           addUserBubble(text);
           incrementCount();
 
-          // チャッピーのお返事中ステート（青＋オレンジ輪）
+          // チャッピーのお返事ターン（パステルブルー＋青輪）
           setButtonState('speaking');
 
           setTimeout(() => {
@@ -286,7 +288,7 @@
       }
     }
 
-    // ボタンの状態制御（白+グレー輪 / オレンジ+オレンジ輪 / 青+オレンジ輪）
+    // ボタンの状態切り替え（ソフトな色＆それぞれの光る輪）
     function setButtonState(state) {
       micButton.className = '';
       if (state === 'idle') {
@@ -301,13 +303,16 @@
       }
     }
 
-    // カウントアップ
+    // カウントアップ＆花丸表示ロジック
     function incrementCount() {
       talkCount++;
       talkCountEl.textContent = talkCount;
+      // 1回以上お話しできたら頑張ったご褒美の「花丸」を表示
+      if (talkCount >= 1) {
+        hanamaruIcon.style.display = 'inline-block';
+      }
     }
 
-    // お母さんの吹き出し（右側・オレンジ半透明）
     function addUserBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-user';
@@ -316,7 +321,6 @@
       scrollToBottom();
     }
 
-    // チャッピーの吹き出し（左側・白）
     function addChappyBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-chappy';
