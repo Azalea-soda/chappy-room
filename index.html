@@ -118,7 +118,7 @@
       filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
     }
 
-    /* 3. 下部：ホワイトカード領域 */
+    /* 3. 下部：ホワイトカード領域（サイズ・位置は一切変えずそのまま） */
     #bottom-card {
       background: #ffffff;
       border-top-left-radius: 26px;
@@ -133,19 +133,29 @@
       flex-shrink: 0;
     }
 
-    /* カウンター行：全体をセンター揃えにし、花丸とテキストを1列のベースライン（下揃え）でピタッと結合 */
-    #counter-text-line {
-      display: flex;
-      align-items: baseline; /* 文字・花丸・数字すべてを下端（ベースライン）で揃える */
-      justify-content: center;
-      gap: 6px;
-      font-size: 1.15rem;
-      color: #222222;
+    /* 
+      カウンター部分：
+      ホワイトカードの中で文字と花丸の塊全体が綺麗に収まるように配置
+    */
+    #counter-wrapper {
       width: 100%;
       text-align: center;
+      height: 44px; /* 高さを固定して安定させる */
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* 花丸アイコン：大きさを42pxに微増（文字の一回り大きい存在感で綺麗な一本ラインに収める） */
+    #counter-text-line {
+      display: inline-flex;
+      align-items: baseline; /* 数字を含めて、すべてを下揃え（ベースライン）で結合 */
+      justify-content: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      color: #222222;
+    }
+
+    /* 花丸アイコン：約10mmサイズ（42px）をキープし、テキストと同じラインに美しく並べる */
     #hanamaru-icon {
       width: 42px;
       height: 42px;
@@ -153,10 +163,10 @@
       display: none; /* 達成時に表示 */
       vertical-align: baseline;
       flex-shrink: 0;
-      transform: translateY(4px); /* 大きくした分、下端ラインを微調整して綺麗に合わせる */
+      transform: translateY(10px); /* 10mmの大きさを保ちつつ、文字のベースラインに綺麗に合わせる位置調整 */
     }
 
-    /* カウンター数字：大きく・赤色・下揃え（ベースライン揃え） */
+    /* カウンター数字：大きく・赤色・下揃え（ベースライン） */
     #talk-count {
       font-size: 1.6rem;
       font-weight: 700;
@@ -166,7 +176,7 @@
       vertical-align: baseline;
     }
 
-    /* マイクボタン（🎙️で固定） */
+    /* マイクボタン（位置やサイズはそのままで固定） */
     #mic-button {
       width: 72px;
       height: 72px;
@@ -224,11 +234,13 @@
 
     <!-- 下部：ホワイトカード領域 -->
     <div id="bottom-card">
-      <div id="counter-text-line">
-        <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
-        <span>今日</span>
-        <span id="talk-count">0</span>
-        <span>回お話ししたにゃ🐾</span>
+      <div id="counter-wrapper">
+        <div id="counter-text-line">
+          <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
+          <span>今日</span>
+          <span id="talk-count">0</span>
+          <span>回お話ししたにゃ🐾</span>
+        </div>
       </div>
 
       <!-- アイコンは常に 🎙️ のまま固定 -->
