@@ -45,4 +45,312 @@
     #chat-scroll-area {
       height: 38%;
       margin: 14px 16px 0 16px;
-      padding
+      padding: 8px 4px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+      z-index: 10;
+    }
+
+    #chat-scroll-area::-webkit-scrollbar {
+      width: 4px;
+    }
+    #chat-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 2px;
+    }
+
+    /* 吹き出し共通スタイル */
+    .chat-bubble {
+      max-width: 85%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 1.25rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* チャッピーの吹き出し */
+    .bubble-chappy {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.55);
+      color: #111111;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* お母さんの吹き出し */
+    .bubble-user {
+      align-self: flex-end;
+      background: rgba(255, 140, 40, 0.55);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      border: 1px solid rgba(255, 180, 100, 0.6);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 2. 中央：チャッピー画像エリア */
+    #character-area {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 5;
+      padding-bottom: 12px;
+    }
+
+    #chappy-image {
+      max-height: 94%;
+      max-width: 88%;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+    }
+
+    /* 3. 下部：ホワイトカード領域 */
+    #bottom-card {
+      background: #ffffff;
+      border-top-left-radius: 26px;
+      border-top-right-radius: 26px;
+      padding: 14px 12px 20px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.12);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    /* カウンター行：全体をセンター揃えにし、花丸とテキストを1列のベースライン（下揃え）でピタッと結合 */
+    #counter-text-line {
+      display: flex;
+      align-items: baseline; /* 文字・花丸・数字すべてを下端（ベースライン）で揃える */
+      justify-content: center;
+      gap: 6px;
+      font-size: 1.15rem;
+      color: #222222;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* 花丸アイコン：サイズはそのままで、文字列のベースラインに綺麗に乗せる */
+    #hanamaru-icon {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+      display: none; /* 達成時に表示 */
+      vertical-align: baseline;
+      flex-shrink: 0;
+    }
+
+    /* カウンター数字：大きく・赤色・下揃え（ベースライン揃え） */
+    #talk-count {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e53935;
+      margin: 0 2px;
+      line-height: 1;
+      vertical-align: baseline;
+    }
+
+    /* マイクボタン（🎙️で固定） */
+    #mic-button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.8rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #mic-button.state-idle {
+      background: #ffffff;
+      color: #555555;
+      box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    #mic-button.state-listening {
+      background: #ff9d3b;
+      color: #ffffff;
+      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 14px rgba(255, 140, 0, 0.3);
+      animation: pulse-orange 1.5s infinite;
+    }
+
+    #mic-button.state-speaking {
+      background: #4a90e2;
+      color: #ffffff;
+      box-shadow: 0 0 0 8px rgba(74, 144, 226, 0.5), 0 4px 14px rgba(74, 144, 226, 0.3);
+    }
+
+    @keyframes pulse-orange {
+      0% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 0 4px 10px rgba(255, 140, 0, 0.3); }
+      70% { box-shadow: 0 0 0 14px rgba(255, 140, 0, 0), 0 4px 10px rgba(255, 140, 0, 0.3); }
+      100% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0), 0 4px 10px rgba(255, 140, 0, 0.3); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    
+    <!-- 上部：LINE風スクロール吹き出しエリア -->
+    <div id="chat-scroll-area">
+      <div class="chat-bubble bubble-chappy">
+        お話しするにゃ！🐾
+      </div>
+    </div>
+
+    <!-- 中央：チャッピー画像 -->
+    <div id="character-area">
+      <img id="chappy-image" src="cat-default.png" alt="チャッピー">
+    </div>
+
+    <!-- 下部：ホワイトカード領域 -->
+    <div id="bottom-card">
+      <div id="counter-text-line">
+        <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
+        <span>今日</span>
+        <span id="talk-count">0</span>
+        <span>回お話ししたにゃ🐾</span>
+      </div>
+
+      <!-- アイコンは常に 🎙️ のまま固定 -->
+      <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">🎙️</button>
+    </div>
+
+  </div>
+
+  <script>
+    const chatScrollArea = document.getElementById('chat-scroll-area');
+    const micButton = document.getElementById('mic-button');
+    const talkCountEl = document.getElementById('talk-count');
+    const hanamaruIcon = document.getElementById('hanamaru-icon');
+
+    let talkCount = 0;
+    let isListening = false;
+    let recognition = null;
+    let sessionUserTexts = [];
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const text = event.results[i][0].transcript.trim();
+            if (text !== "") {
+              addUserBubble(text);
+              sessionUserTexts.push(text);
+            }
+          }
+        }
+      };
+
+      recognition.onend = () => {
+        if (isListening) {
+          try { recognition.start(); } catch(e) {}
+        }
+      };
+
+      recognition.onerror = () => {};
+    } else {
+      alert("お使いのブラウザは音声認識に対応していません。");
+    }
+
+    function toggleManualSpeech() {
+      if (!recognition) return;
+
+      if (!isListening) {
+        sessionUserTexts = [];
+        isListening = true;
+        setButtonState('listening');
+        try {
+          recognition.start();
+        } catch(e) {}
+      } else {
+        isListening = false;
+        try {
+          recognition.stop();
+        } catch(e) {}
+
+        setButtonState('speaking');
+
+        setTimeout(() => {
+          if (sessionUserTexts.length > 0) {
+            const fullTalk = sessionUserTexts.join(' ');
+            addChappyBubble("しっかり聞いたにゃ。「" + fullTalk + "」だね🐾");
+            incrementCount();
+          } else {
+            addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+          }
+          
+          setButtonState('idle');
+        }, 1200);
+      }
+    }
+
+    function setButtonState(state) {
+      micButton.className = '';
+      micButton.textContent = '🎙️';
+      if (state === 'idle') {
+        micButton.classList.add('state-idle');
+      } else if (state === 'listening') {
+        micButton.classList.add('state-listening');
+      } else if (state === 'speaking') {
+        micButton.classList.add('state-speaking');
+      }
+    }
+
+    function incrementCount() {
+      talkCount++;
+      talkCountEl.textContent = talkCount;
+      if (talkCount >= 1) {
+        hanamaruIcon.style.display = 'inline-block';
+      }
+    }
+
+    function addUserBubble(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble bubble-user';
+      bubble.textContent = text;
+      chatScrollArea.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function addChappyBubble(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble bubble-chappy';
+      bubble.textContent = text;
+      chatScrollArea.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      chatScrollArea.scrollTo({
+        top: chatScrollArea.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  </script>
+</body>
+</html>
