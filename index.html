@@ -172,12 +172,10 @@
       vertical-align: baseline;
     }
 
-    /* 
-      マイクボタン（背景画像 mic-bk.png に変更）
-    */
+    /* マイクボタン（丸い土台） */
     #mic-button {
-      width: 76px;
-      height: 76px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       border: none;
       display: flex;
@@ -187,44 +185,39 @@
       transition: all 0.3s ease;
       padding: 0;
       overflow: hidden;
-      
-      /* 背景に mic-bk.png を指定 */
-      background-image: url('mic-bk.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-color: transparent;
     }
 
-    /* ボタンの中のマイクイラスト（mic-icon.png） */
+    /* ボタンの中のマイクイラスト */
     #mic-icon-img {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
       pointer-events: none;
     }
 
-    /* 待機状態：手描き背景をくっきり見せる */
+    /* 待機状態：白い背景 */
     #mic-button.state-idle {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      filter: brightness(1.0);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* 録音中状態：少し明るく発光アニメーション */
+    /* 録音中状態：少し淡いオレンジ色の背景 ＋ 優しく光るアニメーション */
     #mic-button.state-listening {
-      box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 16px rgba(255, 140, 0, 0.4);
+      background-color: #ffb76b; 
+      box-shadow: 0 0 0 8px rgba(255, 183, 107, 0.4), 0 4px 14px rgba(255, 140, 0, 0.2);
       animation: pulse-orange 1.5s infinite;
     }
 
-    /* 応答中状態：青い光で囲む */
+    /* 応答中状態：少し淡い青色の背景 */
     #mic-button.state-speaking {
-      box-shadow: 0 0 0 8px rgba(74, 144, 226, 0.5), 0 4px 16px rgba(74, 144, 226, 0.4);
+      background-color: #7ab8ff;
+      box-shadow: 0 0 0 8px rgba(122, 184, 255, 0.4), 0 4px 14px rgba(74, 144, 226, 0.2);
     }
 
     @keyframes pulse-orange {
-      0% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 0 4px 12px rgba(255, 140, 0, 0.3); }
-      70% { box-shadow: 0 0 0 14px rgba(255, 140, 0, 0), 0 4px 12px rgba(255, 140, 0, 0.3); }
-      100% { box-shadow: 0 0 0 4px rgba(255, 140, 0, 0), 0 4px 12px rgba(255, 140, 0, 0.3); }
+      0% { box-shadow: 0 0 0 4px rgba(255, 183, 107, 0.6), 0 4px 10px rgba(255, 140, 0, 0.2); }
+      70% { box-shadow: 0 0 0 14px rgba(255, 183, 107, 0), 0 4px 10px rgba(255, 140, 0, 0.2); }
+      100% { box-shadow: 0 0 0 4px rgba(255, 183, 107, 0), 0 4px 10px rgba(255, 140, 0, 0.2); }
     }
   </style>
 </head>
@@ -255,9 +248,9 @@
         </div>
       </div>
 
-      <!-- 背景画像：mic-bk.png / 中身画像：mic-icon.png -->
+      <!-- マイクボタン（初期状態は mic-bk.png を表示） -->
       <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
-        <img id="mic-icon-img" src="mic-icon.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
+        <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
     </div>
 
@@ -266,6 +259,7 @@
   <script>
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
+    const micIconImg = document.getElementById('mic-icon-img');
     const talkCountEl = document.getElementById('talk-count');
     const hanamaruIcon = document.getElementById('hanamaru-icon');
 
@@ -345,10 +339,13 @@
       micButton.className = '';
       if (state === 'idle') {
         micButton.classList.add('state-idle');
+        micIconImg.src = 'mic-bk.png'; // 待機時は黒いマイク
       } else if (state === 'listening') {
         micButton.classList.add('state-listening');
+        micIconImg.src = 'mic-icon.png'; // 録音中は白いマイク
       } else if (state === 'speaking') {
         micButton.classList.add('state-speaking');
+        micIconImg.src = 'mic-icon.png'; // 応答中も白いマイク
       }
     }
 
