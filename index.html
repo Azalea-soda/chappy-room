@@ -67,7 +67,7 @@
       max-width: 85%;
       padding: 12px 18px;
       border-radius: 18px;
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       line-height: 1.4;
       word-wrap: break-word;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -100,7 +100,7 @@
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
-    /* 2. 中央：チャッピー画像エリア（比率を完全維持） */
+    /* 2. 中央：チャッピー画像エリア */
     #character-area {
       flex: 1;
       display: flex;
@@ -118,12 +118,12 @@
       filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
     }
 
-    /* 3. 下部：ホワイトカード領域（サイズ・位置は一切変えずそのまま） */
+    /* 3. 下部：ホワイトカード領域 */
     #bottom-card {
       background: #ffffff;
       border-top-left-radius: 26px;
       border-top-right-radius: 26px;
-      padding: 14px 10px 20px 10px;
+      padding: 14px 12px 20px 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -133,14 +133,10 @@
       flex-shrink: 0;
     }
 
-    /* 
-      カウンター部分（arrows We2のコンパクト幅に完全最適化）：
-      ホワイトカードの中で文字と花丸の塊全体が綺麗に収まるように配置
-    */
+    /* カウンター行 */
     #counter-wrapper {
       width: 100%;
       text-align: center;
-      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -148,30 +144,27 @@
 
     #counter-text-line {
       display: inline-flex;
-      align-items: baseline; /* 数字を含めて、すべてを下揃え（ベースライン）で結合 */
+      align-items: baseline;
       justify-content: center;
-      gap: 4px;
-      font-size: 1.05rem; /* arrowsの幅にピタッと収まる絶妙なサイズ調整 */
-      letter-spacing: -0.01em;
+      gap: 6px;
+      font-size: 1.15rem;
       color: #222222;
-      white-space: nowrap; /* 絶対に2行に折れないようにする */
     }
 
-    /* 花丸アイコン：約10mmサイズ（38〜40px）をキープし、テキストと同じラインに美しく並べる */
+    /* 花丸アイコン */
     #hanamaru-icon {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
-      display: none; /* 達成時に表示 */
+      display: none;
       vertical-align: baseline;
       flex-shrink: 0;
-      transform: translateY(8px); /* 10mmの存在感を保ちつつ、文字のベースラインに綺麗に合わせる位置調整 */
-      margin-right: 2px;
+      transform: translateY(8px);
     }
 
-    /* カウンター数字：大きく・赤色・下揃え（ベースライン） */
+    /* カウンター数字 */
     #talk-count {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 700;
       color: #e53935;
       margin: 0 2px;
@@ -179,36 +172,42 @@
       vertical-align: baseline;
     }
 
-    /* マイクボタン（位置やサイズはそのままで固定） */
+    /* マイクボタン（PNG画像表示に対応） */
     #mic-button {
       width: 72px;
       height: 72px;
       border-radius: 50%;
       border: none;
-      font-size: 1.8rem;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
       transition: all 0.3s ease;
+      background-color: #ffffff;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* ボタンの中のマイクイラスト（mic-icon.png） */
+    #mic-icon-img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
     }
 
     #mic-button.state-idle {
       background: #ffffff;
-      color: #555555;
       box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
     }
 
     #mic-button.state-listening {
       background: #ff9d3b;
-      color: #ffffff;
       box-shadow: 0 0 0 8px rgba(255, 140, 0, 0.5), 0 4px 14px rgba(255, 140, 0, 0.3);
       animation: pulse-orange 1.5s infinite;
     }
 
     #mic-button.state-speaking {
       background: #4a90e2;
-      color: #ffffff;
       box-shadow: 0 0 0 8px rgba(74, 144, 226, 0.5), 0 4px 14px rgba(74, 144, 226, 0.3);
     }
 
@@ -246,8 +245,13 @@
         </div>
       </div>
 
-      <!-- アイコンは常に 🎙️ のまま固定 -->
-      <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">🎙️</button>
+      <!-- 
+        マイクボタン：イラスト画像 mic-icon.png を読み込み。
+        未アップロード時は絵文字 🎙️ に自動フォールバックします！ 
+      -->
+      <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
+        <img id="mic-icon-img" src="mic-icon.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
+      </button>
     </div>
 
   </div>
@@ -288,7 +292,12 @@
         }
       };
 
-      recognition.onerror = () => {};
+      recognition.onerror = (event) => {
+        console.error("音声認識エラー:", event.error);
+        if (event.error === 'not-allowed') {
+          addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
+        }
+      };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
@@ -327,7 +336,6 @@
 
     function setButtonState(state) {
       micButton.className = '';
-      micButton.textContent = '🎙️';
       if (state === 'idle') {
         micButton.classList.add('state-idle');
       } else if (state === 'listening') {
