@@ -201,7 +201,7 @@
       box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* 録音中状態：少し淡いオレンジ色の背景 ＋ 優しく光るアニメーション */
+    /* 録音中状態：少し淡いオレンジ色の背景 ＋ 光るアニメーション */
     #mic-button.state-listening {
       background-color: #ffb76b; 
       box-shadow: 0 0 0 8px rgba(255, 183, 107, 0.4), 0 4px 14px rgba(255, 140, 0, 0.2);
@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お話しするにゃ！🐾
+        お話しするにゃ！🐾 何でもお気軽に話してね♪
       </div>
     </div>
 
@@ -248,7 +248,7 @@
         </div>
       </div>
 
-      <!-- マイクボタン（初期状態は mic-bk.png を表示） -->
+      <!-- マイクボタン -->
       <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
@@ -268,6 +268,48 @@
     let recognition = null;
     let sessionUserTexts = [];
 
+    // --- 🧠 チャッピーの脳みそ：記憶のメモ帳（localStorageに保存） ---
+    let memoryBox = [];
+    try {
+      const savedMemory = localStorage.getItem('chappy_memory_box');
+      if (savedMemory) {
+        memoryBox = JSON.parse(savedMemory);
+      }
+    } catch(e) {
+      console.log('記憶の読み込み失敗:', e);
+    }
+
+    function saveToMemory(text) {
+      memoryBox.push({
+        text: text,
+        date: new Date().toLocaleDateString('ja-JP')
+      });
+      try {
+        localStorage.setItem('chappy_memory_box', JSON.stringify(memoryBox));
+      } catch(e) {
+        console.log('記憶の保存失敗:', e);
+      }
+    }
+
+    // 🟢 パターン①：お母様がお話ししてくれた時の相槌セリフ集
+    const pattern1Responses = [
+      "やったね👍✨ チャッピーもうれしいにゃん！",
+      "そうなんだ〜！さすがだねぇ、すごいうれしいにゃ🐾",
+      "ふむふむ、うんうん！めっちゃ楽しそうにゃ♪",
+      "最高じゃん✨ もっとたくさんお話し聞かせてにゃ〜！",
+      "そうだったんだぁ！お話聞けてすごく嬉しいにゃん😊"
+    ];
+
+    // 🟠 パターン②：お話しが詰まった時・静かな時の問いかけセリフ集（食の気遣い・生活）
+    const pattern2Prompts = [
+      "今日はごはんいっぱい食べたかにゃ？🍚 無理しないでね〜",
+      "ねえねえ、今日美味しいもの食べた〜？😋 教えてにゃん！",
+      "お茶でも飲んで、ちょっと一息つこ〜🍵 温まるにゃよ♪",
+      "今日はどんな一日だった？楽しかった〜？✨ 気になるにゃあ",
+      "お部屋寒くない？ぬくぬく過ごしてね〜🐾",
+      "チャッピー、お話聞く準備バッチリだにゃ👍 何でも話してね！"
+    ];
+
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
@@ -282,6 +324,8 @@
             if (text !== "") {
               addUserBubble(text);
               sessionUserTexts.push(text);
+              // 🧠 記憶のメモ帳にお母様の発言を保存！
+              saveToMemory(text);
             }
           }
         }
@@ -321,17 +365,22 @@
 
         setButtonState('speaking');
 
+        // 🧠 少し時間を置いてチャッピーがお返事するロジック
         setTimeout(() => {
           if (sessionUserTexts.length > 0) {
+            // パターン①：何か話してくれた時
             const fullTalk = sessionUserTexts.join(' ');
-            addChappyBubble("しっかり聞いたにゃ。「" + fullTalk + "」だね🐾");
+            const randomReply = pattern1Responses[Math.floor(Math.random() * pattern1Responses.length)];
+            addChappyBubble(`「${fullTalk}」だね！ ${randomReply}`);
             incrementCount();
           } else {
-            addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+            // パターン②：あまり話さなかった時（問いかけ）
+            const randomPrompt = pattern2Prompts[Math.floor(Math.random() * pattern2Prompts.length)];
+            addChappyBubble(randomPrompt);
           }
           
           setButtonState('idle');
-        }, 1200);
+        }, 1400);
       }
     }
 
@@ -339,13 +388,13 @@
       micButton.className = '';
       if (state === 'idle') {
         micButton.classList.add('state-idle');
-        micIconImg.src = 'mic-bk.png'; // 待機時は黒いマイク
+        micIconImg.src = 'mic-bk.png';
       } else if (state === 'listening') {
         micButton.classList.add('state-listening');
-        micIconImg.src = 'mic-icon.png'; // 録音中は白いマイク
+        micIconImg.src = 'mic-icon.png';
       } else if (state === 'speaking') {
         micButton.classList.add('state-speaking');
-        micIconImg.src = 'mic-icon.png'; // 応答中も白いマイク
+        micIconImg.src = 'mic-icon.png';
       }
     }
 
