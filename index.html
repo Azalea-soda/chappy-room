@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お母さん、こんにちはだにゃ！チャッピーだにゃ🐾 今日もお話しできてとってもうれしいにゃ！
+        お話ししてにゃん🐾
       </div>
     </div>
 
@@ -257,7 +257,7 @@
   </div>
 
   <script>
-    // --- ジェミが責任を持って組み込み済みのAPI設定 ---
+    // API設定
     const API_KEY = "AQ.Ab8RN6J3_mTAPmm7vhcBIplhvVLhpAa3k38cLfKsX-nNlTwMlw";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
@@ -311,9 +311,7 @@
       };
 
       recognition.onend = () => {
-        if (!isListening) {
-          processUserSpeech();
-        } else {
+        if (isListening) {
           try { recognition.start(); } catch(e) {}
         }
       };
@@ -322,8 +320,9 @@
         console.error("音声認識エラー:", event.error);
         if (event.error === 'not-allowed') {
           addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
-          setButtonState('idle');
         }
+        setButtonState('idle');
+        isListening = false;
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
@@ -338,24 +337,28 @@
         setButtonState('listening');
         try {
           recognition.start();
-        } catch(e) {}
+        } catch(e) {
+          console.error(e);
+        }
       } else {
         isListening = false;
         setButtonState('speaking');
         try {
           recognition.stop();
-        } catch(e) {}
-      }
-    }
+        } catch(e) {
+          console.error(e);
+        }
 
-    async function processUserSpeech() {
-      if (sessionUserTexts.length > 0) {
-        const fullTalk = sessionUserTexts.join(' ');
-        addUserBubble(fullTalk);
-        await getChappyResponse(fullTalk);
-      } else {
-        addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
-        setButtonState('idle');
+        setTimeout(() => {
+          if (sessionUserTexts.length > 0) {
+            const fullTalk = sessionUserTexts.join(' ');
+            addUserBubble(fullTalk);
+            getChappyResponse(fullTalk);
+          } else {
+            addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+            setButtonState('idle');
+          }
+        }, 800);
       }
     }
 
@@ -367,10 +370,10 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemPrompt }]
-            },
-            contents: conversationHistory
+            contents: [
+              { role: "user", parts: [{ text: systemPrompt }] },
+              ...conversationHistory
+            ]
           })
         });
 
@@ -384,7 +387,6 @@
         addChappyBubble(chappyReply);
         conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
         incrementCount();
-
         speakChappyVoice(chappyReply);
 
       } catch (error) {
@@ -438,7 +440,7 @@
       scrollToBottom();
     }
 
-    function, addChappyBubble(text) {
+    function addChappyBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-chappy';
       bubble.textContent = text;
