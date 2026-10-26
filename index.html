@@ -278,7 +278,7 @@
     let talkCount = 0;
     let isListening = false;
     let recognition = null;
-    let finalTranscript = "";
+    let sessionUserTexts = [];
     let conversationHistory = [
       { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
       { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
@@ -288,45 +288,43 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
-      recognition.continuous = false; // 1回ごとに確実に区切ることで取りこぼしを防ぐ
+      recognition.continuous = true;       // お母さんが自分のペースで途切れても続けられるようにする
       recognition.interimResults = false;
 
       recognition.onresult = (event) => {
-        if (event.results && event.results[0] && event.results[0][0]) {
-          finalTranscript = event.results[0][0].transcript.trim();
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const text = event.results[i][0].transcript.trim();
+            if (text !== "") {
+              sessionUserTexts.push(text);
+            }
+          }
         }
       };
 
       recognition.onerror = (event) => {
         console.error("音声認識エラー:", event.error);
+        if (event.error === 'not-allowed') {
+          addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
+          setButtonState('idle');
+          isListening = false;
+        }
       };
 
       recognition.onend = () => {
-        if (isListening) {
-          // 録音終了時にボタンがまだオレンジなら、自動で青（送信）へ進める
-          isListening = false;
-          setButtonState('speaking');
-
-          if (finalTranscript !== "") {
-            addUserBubble(finalTranscript);
-            getChappyResponse(finalTranscript);
-          } else {
-            // 音声が拾えなかった場合の救済措置として、確実にAIへ問い合わせる
-            addUserBubble("（お話ししたよ）");
-            getChappyResponse("お名前を教えて？");
-          }
-        }
+        // 音声認識が途中で切れても、ユーザーが2回目のタップをするまでは勝手に進めない（待機）
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
 
+    // 【完全手動・2回タップ制御】
     function toggleManualSpeech() {
       if (!recognition) return;
 
       if (!isListening) {
-        // 【1回目タップ】：白 → オレンジ（録音開始）
-        finalTranscript = "";
+        // 【1回目タップ】：白（待機） → オレンジ（録音開始：お母さんのペースで無制限に話せる）
+        sessionUserTexts = [];
         isListening = true;
         setButtonState('listening');
         try {
@@ -335,21 +333,25 @@
           console.error(e);
         }
       } else {
-        // 【2回目タップ】：オレンジ → 青（手動でストップをかける）
+        // 【2回目タップ】：オレンジ → 青（送信・AI応答：お母さんがもう一度押したときだけチャッピーのターンになる）
         isListening = false;
         try {
           recognition.stop();
         } catch(e) {
           console.error(e);
         }
+
         setButtonState('speaking');
 
-        if (finalTranscript !== "") {
-          addUserBubble(finalTranscript);
-          getChappyResponse(finalTranscript);
+        const fullTalk = sessionUserTexts.join(' ').trim();
+        if (fullTalk !== "") {
+          addUserBubble(fullTalk);
+          getChappyResponse(fullTalk);
         } else {
-          addUserBubble("（お名前を教えて？）");
-          getChappyResponse("あなたの名前を教えて？");
+          // もし言葉が拾えなかった場合でも、チャッピーが優しく聞き返す
+          const fallbackUserText = "お名前を教えて？";
+          addUserBubble(fallbackUserText);
+          getChappyResponse(fallbackUserText);
         }
       }
     }
@@ -377,27 +379,38 @@
         addChappyBubble(chappyReply);
         conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
         incrementCount();
-        speakChappyVoice(chappyReply);
+        speakChappyVoice(chappyReply, () => {
+          // 読み上げが完全に終わってから白（待機）に戻る
+          setButtonState('idle');
+        });
 
       } catch (error) {
         console.error("API通信エラー:", error);
         conversationHistory.pop();
         const fallbackReply = "チャッピーだにゃ！お母さんのお声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
-        speakChappyVoice(fallbackReply);
-      } finally {
-        setButtonState('idle');
+        speakChappyVoice(fallbackReply, () => {
+          setButtonState('idle');
+        });
       }
     }
 
-    function speakChappyVoice(text) {
+    function speakChappyVoice(text, callback) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ja-JP';
         utterance.rate = 1.0;
         utterance.pitch = 1.3;
+        utterance.onend = () => {
+          if (callback) callback();
+        };
+        utterance.onerror = () => {
+          if (callback) callback();
+        };
         window.speechSynthesis.speak(utterance);
+      } else {
+        if (callback) callback();
       }
     }
 
