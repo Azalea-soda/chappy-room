@@ -373,12 +373,18 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: {
+            system_instruction: {
               parts: [{ text: systemPrompt }]
             },
             contents: conversationHistory
           })
         });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          console.error("APIエラー詳細:", response.status, errText);
+          throw new Error(`API HTTP Error: ${response.status}`);
+        }
 
         const data = await response.json();
         let chappyReply = "ごめんにゃ、うまく聞こえなかったにゃ...もう一度お話ししてほしいにゃ🐾";
@@ -393,8 +399,10 @@
         speakChappyVoice(chappyReply);
 
       } catch (error) {
-        console.error("APIエラー:", error);
-        const errReply = "ちょっとうまくお返事できなかったにゃ...もう一度お話ししてほしいにゃ！";
+        console.error("API通信エラー:", error);
+        // エラー時は失敗したユーザー入力を履歴から除外し、次の会話に影響させない
+        conversationHistory.pop();
+        const errReply = "ちょっと電波の調子が悪いみたいにゃ…もう一度ボタンを押して話しかけてね！";
         addChappyBubble(errReply);
         speakChappyVoice(errReply);
       } finally {
