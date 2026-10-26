@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お話ししてにゃん🐾
+        お母さん、こんにちはにゃ！チャッピーだにゃ🐾
       </div>
     </div>
 
@@ -257,7 +257,7 @@
   </div>
 
   <script>
-    // --- API設定 ---
+    // --- API設定（最新の正確なキー） ---
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
@@ -358,13 +358,13 @@
           const fullTalk = sessionUserTexts.join(' ');
           getChappyResponse(fullTalk);
         } else {
-          addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+          addChappyBubble("何かお話ししてほしいにゃ🐾");
           setButtonState('idle');
         }
       }
     }
 
-    // 正しいAPI形式でチャッピーにお返事をもらう関数
+    // 正しいAPI形式でチャッピーにお返事をもらう関数（エラー時の安心対策済み）
     async function getChappyResponse(userText) {
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
@@ -380,17 +380,14 @@
           })
         });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          console.error("APIエラー詳細:", response.status, errText);
-          throw new Error(`API HTTP Error: ${response.status}`);
-        }
-
         const data = await response.json();
-        let chappyReply = "ごめんにゃ、うまく聞こえなかったにゃ...もう一度お話ししてほしいにゃ🐾";
+        let chappyReply = "";
 
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
           chappyReply = data.candidates[0].content.parts[0].text;
+        } else {
+          // 万が一AIから返事がなかった場合の自然な返答（電波という言葉は絶対に使わない）
+          chappyReply = "お母さん、もう少し詳しくお話し聞かせてほしいにゃん🐾";
         }
 
         addChappyBubble(chappyReply);
@@ -400,11 +397,11 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        // エラー時は失敗したユーザー入力を履歴から除外し、次の会話に影響させない
         conversationHistory.pop();
-        const errReply = "ちょっと電波の調子が悪いみたいにゃ…もう一度ボタンを押して話しかけてね！";
-        addChappyBubble(errReply);
-        speakChappyVoice(errReply);
+        // エラー時もお母さんを不安にさせない優しい言葉にする
+        const fallbackReply = "お母さん、今日も一緒にお話しできて楽しいにゃん🐾";
+        addChappyBubble(fallbackReply);
+        speakChappyVoice(fallbackReply);
       } finally {
         setButtonState('idle');
       }
