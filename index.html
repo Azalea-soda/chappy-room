@@ -257,7 +257,7 @@
   </div>
 
   <script>
-    // API設定
+    // --- 正しいAPI設定 ---
     const API_KEY = "AQ.Ab8RN6J3_mTAPmm7vhcBIplhvVLhpAa3k38cLfKsX-nNlTwMlw";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
@@ -289,7 +289,6 @@
     let talkCount = 0;
     let isListening = false;
     let recognition = null;
-    let sessionUserTexts = [];
     let conversationHistory = [];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -299,12 +298,14 @@
       recognition.continuous = true;
       recognition.interimResults = false;
 
+      // 話した言葉が確定した瞬間に、その都度吹き出しに追加してチャッピーに伝える仕組みに戻します
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             const text = event.results[i][0].transcript.trim();
             if (text !== "") {
-              sessionUserTexts.push(text);
+              addUserBubble(text);
+              getChappyResponse(text);
             }
           }
         }
@@ -332,7 +333,6 @@
       if (!recognition) return;
 
       if (!isListening) {
-        sessionUserTexts = [];
         isListening = true;
         setButtonState('listening');
         try {
@@ -342,27 +342,17 @@
         }
       } else {
         isListening = false;
-        setButtonState('speaking');
+        setButtonState('idle');
         try {
           recognition.stop();
         } catch(e) {
           console.error(e);
         }
-
-        setTimeout(() => {
-          if (sessionUserTexts.length > 0) {
-            const fullTalk = sessionUserTexts.join(' ');
-            addUserBubble(fullTalk);
-            getChappyResponse(fullTalk);
-          } else {
-            addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
-            setButtonState('idle');
-          }
-        }, 800);
       }
     }
 
     async function getChappyResponse(userText) {
+      setButtonState('speaking');
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -395,7 +385,11 @@
         addChappyBubble(errReply);
         speakChappyVoice(errReply);
       } finally {
-        setButtonState('idle');
+        if (!isListening) {
+          setButtonState('idle');
+        } else {
+          setButtonState('listening');
+        }
       }
     }
 
