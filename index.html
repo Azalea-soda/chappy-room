@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お母さん、こんにちはにゃ！チャッピーだにゃ🐾
+        お話ししてにゃ！🐾
       </div>
     </div>
 
@@ -257,7 +257,7 @@
   </div>
 
   <script>
-    // --- API設定（最新の正確なキー） ---
+    // --- API設定 ---
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
@@ -364,7 +364,7 @@
       }
     }
 
-    // 正しいAPI形式でチャッピーにお返事をもらう関数（エラー時の安心対策済み）
+    // 正しいAPI形式でチャッピーにお返事をもらう関数（AIの返答を確実に抽出）
     async function getChappyResponse(userText) {
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
@@ -383,11 +383,11 @@
         const data = await response.json();
         let chappyReply = "";
 
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+        // APIのレスポンスから正確にテキストを取り出す処理
+        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           chappyReply = data.candidates[0].content.parts[0].text;
         } else {
-          // 万が一AIから返事がなかった場合の自然な返答（電波という言葉は絶対に使わない）
-          chappyReply = "お母さん、もう少し詳しくお話し聞かせてほしいにゃん🐾";
+          chappyReply = "お母さん、もっとお話し聞かせてほしいにゃん🐾";
         }
 
         addChappyBubble(chappyReply);
@@ -398,7 +398,6 @@
       } catch (error) {
         console.error("API通信エラー:", error);
         conversationHistory.pop();
-        // エラー時もお母さんを不安にさせない優しい言葉にする
         const fallbackReply = "お母さん、今日も一緒にお話しできて楽しいにゃん🐾";
         addChappyBubble(fallbackReply);
         speakChappyVoice(fallbackReply);
