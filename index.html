@@ -249,7 +249,7 @@
       </div>
 
       <!-- マイクボタン -->
-      <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
+      <button id="mic-button" class="state-idle" onclick="handleMicClick()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
     </div>
@@ -276,7 +276,8 @@
     const hanamaruIcon = document.getElementById('hanamaru-icon');
 
     let talkCount = 0;
-    let isListening = false;
+    // 状態管理: 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
+    let currentState = 'idle'; 
     let recognition = null;
     let sessionUserTexts = [];
     let conversationHistory = [
@@ -288,7 +289,7 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
-      recognition.continuous = true;       // お母さんが自分のペースで途切れても続けられるようにする
+      recognition.continuous = true;
       recognition.interimResults = false;
 
       recognition.onresult = (event) => {
@@ -304,55 +305,54 @@
 
       recognition.onerror = (event) => {
         console.error("音声認識エラー:", event.error);
-        if (event.error === 'not-allowed') {
-          addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
-          setButtonState('idle');
-          isListening = false;
-        }
       };
 
       recognition.onend = () => {
-        // 音声認識が途中で切れても、ユーザーが2回目のタップをするまでは勝手に進めない（待機）
+        // 音声認識が勝手に切れても、ユーザーが2回目のタップをするまでは状態を変えない
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
 
-    // 【完全手動・2回タップ制御】
-    function toggleManualSpeech() {
+    // 【厳格なボタン制御ルール】
+    function handleMicClick() {
       if (!recognition) return;
 
-      if (!isListening) {
-        // 【1回目タップ】：白（待機） → オレンジ（録音開始：お母さんのペースで無制限に話せる）
-        sessionUserTexts = [];
-        isListening = true;
+      if (currentState === 'idle') {
+        // 【1回目タップ】：白（待機） → オレンジ（録音開始：お母さんのターン）
+        currentState = 'listening';
         setButtonState('listening');
+        sessionUserTexts = [];
         try {
           recognition.start();
         } catch(e) {
           console.error(e);
         }
-      } else {
-        // 【2回目タップ】：オレンジ → 青（送信・AI応答：お母さんがもう一度押したときだけチャッピーのターンになる）
-        isListening = false;
+
+      } else if (currentState === 'listening') {
+        // 【2回目タップ】：オレンジ → 青（送信・チャッピーターン）
+        currentState = 'speaking';
+        setButtonState('speaking');
         try {
           recognition.stop();
         } catch(e) {
           console.error(e);
         }
 
-        setButtonState('speaking');
-
         const fullTalk = sessionUserTexts.join(' ').trim();
         if (fullTalk !== "") {
           addUserBubble(fullTalk);
           getChappyResponse(fullTalk);
         } else {
-          // もし言葉が拾えなかった場合でも、チャッピーが優しく聞き返す
-          const fallbackUserText = "お名前を教えて？";
-          addUserBubble(fallbackUserText);
-          getChappyResponse(fallbackUserText);
+          // 何も聞こえなかった場合の救済
+          const fallbackText = "お名前を教えて？";
+          addUserBubble(fallbackText);
+          getChappyResponse(fallbackText);
         }
+
+      } else if (currentState === 'speaking') {
+        // チャッピーが喋っている最中はクリックしても無視する（お母さんを待たせる）
+        console.log("チャッピーがお返事中です。お待ちください。");
       }
     }
 
@@ -379,8 +379,11 @@
         addChappyBubble(chappyReply);
         conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
         incrementCount();
+        
+        // 音声読み上げ開始（青のまま維持）
         speakChappyVoice(chappyReply, () => {
-          // 読み上げが完全に終わってから白（待機）に戻る
+          // 【完了後】：読み上げが完全に終わってから、必ず「白（待機）」に戻す
+          currentState = 'idle';
           setButtonState('idle');
         });
 
@@ -389,7 +392,9 @@
         conversationHistory.pop();
         const fallbackReply = "チャッピーだにゃ！お母さんのお声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
+        
         speakChappyVoice(fallbackReply, () => {
+          currentState = 'idle';
           setButtonState('idle');
         });
       }
@@ -402,12 +407,14 @@
         utterance.lang = 'ja-JP';
         utterance.rate = 1.0;
         utterance.pitch = 1.3;
+        
         utterance.onend = () => {
           if (callback) callback();
         };
         utterance.onerror = () => {
           if (callback) callback();
         };
+        
         window.speechSynthesis.speak(utterance);
       } else {
         if (callback) callback();
