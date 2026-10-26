@@ -1,132 +1,264 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chappy</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        body {
-            background-color: #fdfbf7;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #4a4a4a;
-        }
-        .chat-container {
-            width: 100%;
-            max-width: 480px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
-        }
-        .header {
-            padding: 16px;
-            background-color: #fffaf0;
-            border-bottom: 2px solid #f0e6d2;
-            text-align: center;
-        }
-        .header h1 {
-            font-size: 1.2rem;
-            color: #8b5a2b;
-        }
-        .chat-messages {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-        .user-message {
-            align-self: flex-end;
-            background-color: #8b5a2b;
-            color: #ffffff;
-            border-bottom-right-radius: 4px;
-        }
-        .chappy-message {
-            align-self: flex-start;
-            background-color: #f5efe6;
-            color: #4a4a4a;
-            border-bottom-left-radius: 4px;
-            border: 1px solid #e8dec8;
-        }
-        .input-area {
-            padding: 12px 16px;
-            background-color: #fffaf0;
-            border-top: 1px solid #f0e6d2;
-            display: flex;
-            gap: 8px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #dcd0b9;
-            border-radius: 24px;
-            outline: none;
-            font-size: 0.95rem;
-            background-color: #ffffff;
-        }
-        input[type="text"]:focus {
-            border-color: #8b5a2b;
-        }
-        button {
-            padding: 12px 20px;
-            background-color: #8b5a2b;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #704720;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>チャッピーとお話し</title>
+  <!-- Google Fonts: Kiwi Maru (太字対応) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Kiwi Maru', serif;
+      font-weight: 700;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1a1a2e;
+    }
+
+    /* 全体画面（冬のお部屋 bg-winter.png） */
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-image: url('bg-winter.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* 1. 上部：LINE風スクロール吹き出しエリア */
+    #chat-scroll-area {
+      height: 38%;
+      margin: 14px 16px 0 16px;
+      padding: 8px 4px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+      z-index: 10;
+    }
+
+    #chat-scroll-area::-webkit-scrollbar {
+      width: 4px;
+    }
+    #chat-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 2px;
+    }
+
+    /* 吹き出し共通スタイル */
+    .chat-bubble {
+      max-width: 85%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 1.25rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* チャッピーの吹き出し */
+    .bubble-chappy {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.55);
+      color: #111111;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* お母さんの吹き出し */
+    .bubble-user {
+      align-self: flex-end;
+      background: rgba(255, 140, 40, 0.55);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      border: 1px solid rgba(255, 180, 100, 0.6);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 2. 中央：チャッピー画像エリア */
+    #character-area {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 5;
+      padding-bottom: 12px;
+    }
+
+    #chappy-image {
+      max-height: 94%;
+      max-width: 88%;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+    }
+
+    /* 3. 下部：ホワイトカード領域 */
+    #bottom-card {
+      background: #ffffff;
+      border-top-left-radius: 26px;
+      border-top-right-radius: 26px;
+      padding: 14px 12px 20px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.12);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    /* カウンター行 */
+    #counter-wrapper {
+      width: 100%;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #counter-text-line {
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 6px;
+      font-size: 1.15rem;
+      color: #222222;
+    }
+
+    /* 花丸アイコン */
+    #hanamaru-icon {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      display: none;
+      vertical-align: baseline;
+      flex-shrink: 0;
+      transform: translateY(8px);
+    }
+
+    /* カウンター数字 */
+    #talk-count {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e53935;
+      margin: 0 2px;
+      line-height: 1;
+      vertical-align: baseline;
+    }
+
+    /* マイクボタン（丸い土台） */
+    #mic-button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* ボタンの中のマイクイラスト */
+    #mic-icon-img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    /* 待機状態：白い背景 */
+    #mic-button.state-idle {
+      background-color: #ffffff;
+      box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* 録音中状態：少し淡いオレンジ色の背景 ＋ 優しく光るアニメーション */
+    #mic-button.state-listening {
+      background-color: #ffb76b; 
+      box-shadow: 0 0 0 8px rgba(255, 183, 107, 0.4), 0 4px 14px rgba(255, 140, 0, 0.2);
+      animation: pulse-orange 1.5s infinite;
+    }
+
+    /* 応答中状態：少し淡い青色の背景 */
+    #mic-button.state-speaking {
+      background-color: #7ab8ff;
+      box-shadow: 0 0 0 8px rgba(122, 184, 255, 0.4), 0 4px 14px rgba(74, 144, 226, 0.2);
+    }
+
+    @keyframes pulse-orange {
+      0% { box-shadow: 0 0 0 4px rgba(255, 183, 107, 0.6), 0 4px 10px rgba(255, 140, 0, 0.2); }
+      70% { box-shadow: 0 0 0 14px rgba(255, 183, 107, 0), 0 4px 10px rgba(255, 140, 0, 0.2); }
+      100% { box-shadow: 0 0 0 4px rgba(255, 183, 107, 0), 0 4px 10px rgba(255, 140, 0, 0.2); }
+    }
+  </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <div class="header">
-        <h1>🐾 Chappy 🐾</h1>
-    </div>
+  <div id="app-container">
     
-    <div class="chat-messages" id="chatMessages">
-        <div class="message chappy-message">
-            お母さん、こんにちはだにゃ！チャッピーだにゃ🐾 今日もお話しできてとってもうれしいにゃ！
-        </div>
+    <!-- 上部：LINE風スクロール吹き出しエリア -->
+    <div id="chat-scroll-area">
+      <div class="chat-bubble bubble-chappy">
+        お話しするにゃ！🐾
+      </div>
     </div>
-    
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="チャッピーにお話しする..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button id="sendBtn" onclick="sendMessage()">送信</button>
-    </div>
-</div>
 
-<script>
-    // ※ ここにご自身の Gemini API キー（AIzaSy...）を設定してください
-    const API_KEY = "YOUR_GEMINI_API_KEY"; 
+    <!-- 中央：チャッピー画像 -->
+    <div id="character-area">
+      <img id="chappy-image" src="cat-default.png" alt="チャッピー">
+    </div>
+
+    <!-- 下部：ホワイトカード領域 -->
+    <div id="bottom-card">
+      <div id="counter-wrapper">
+        <div id="counter-text-line">
+          <img id="hanamaru-icon" src="hanamaru.png" alt="はなまる">
+          <span>今日</span>
+          <span id="talk-count">0</span>
+          <span>回お話ししたにゃ🐾</span>
+        </div>
+      </div>
+
+      <!-- マイクボタン（初期状態は mic-bk.png を表示） -->
+      <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
+        <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- Gemini API設定 ---
+    const API_KEY = "YOUR_GEMINI_API_KEY"; // ここにご自身のAPIキーを入れてください
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
     const systemPrompt = `
@@ -148,63 +280,160 @@
 3. 返信は長すぎず、お母さんが読みやすいように2〜3文程度で優しく返答してください。
 `;
 
+    const chatScrollArea = document.getElementById('chat-scroll-area');
+    const micButton = document.getElementById('mic-button');
+    const micIconImg = document.getElementById('mic-icon-img');
+    const talkCountEl = document.getElementById('talk-count');
+    const hanamaruIcon = document.getElementById('hanamaru-icon');
+
+    let talkCount = 0;
+    let isListening = false;
+    let recognition = null;
+    let sessionUserTexts = [];
     let conversationHistory = [];
 
-    async function sendMessage() {
-        const inputField = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const userText = inputField.value.trim();
-        
-        if (!userText) return;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = true;
+      recognition.interimResults = false;
 
-        appendMessage(userText, 'user-message');
-        inputField.value = '';
-        inputField.disabled = true;
-        sendBtn.disabled = true;
-
-        conversationHistory.push({ role: "user", parts: [{ text: userText }] });
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    systemInstruction: {
-                        parts: [{ text: systemPrompt }]
-                    },
-                    contents: conversationHistory
-                })
-            });
-
-            const data = await response.json();
-            let chappyReply = "ごめんにゃ、ちょっとうまく聞こえなかったにゃ...";
-
-            if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                chappyReply = data.candidates[0].content.parts[0].text;
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const text = event.results[i][0].transcript.trim();
+            if (text !== "") {
+              addUserBubble(text);
+              sessionUserTexts.push(text);
             }
-
-            appendMessage(chappyReply, 'chappy-message');
-            conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
-
-        } catch (error) {
-            console.error(error);
-            appendMessage("通信でエラーが起きちゃったにゃ...もう一度試してほしいにゃ！", 'chappy-message');
-        } finally {
-            inputField.disabled = false;
-            sendBtn.disabled = false;
-            inputField.focus();
+          }
         }
+      };
+
+      recognition.onend = () => {
+        if (isListening) {
+          try { recognition.start(); } catch(e) {}
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error("音声認識エラー:", event.error);
+        if (event.error === 'not-allowed') {
+          addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
+        }
+      };
+    } else {
+      alert("お使いのブラウザは音声認識に対応していません。");
     }
 
-    function appendMessage(text, className) {
-        const chatMessages = document.getElementById('chatMessages');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `message ${className}`;
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-</script>
+    async function toggleManualSpeech() {
+      if (!recognition) return;
 
+      if (!isListening) {
+        sessionUserTexts = [];
+        isListening = true;
+        setButtonState('listening');
+        try {
+          recognition.start();
+        } catch(e) {}
+      } else {
+        isListening = false;
+        try {
+          recognition.stop();
+        } catch(e) {}
+
+        setButtonState('speaking');
+
+        if (sessionUserTexts.length > 0) {
+          const fullTalk = sessionUserTexts.join(' ');
+          await getChappyResponse(fullTalk);
+        } else {
+          addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+          setButtonState('idle');
+        }
+      }
+    }
+
+    // チャッピー（Gemini AI）に問い合わせてお返事をもらう関数
+    async function getChappyResponse(userText) {
+      conversationHistory.push({ role: "user", parts: [{ text: userText }] });
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            contents: conversationHistory
+          })
+        });
+
+        const data = await response.json();
+        let chappyReply = "ごめんにゃ、うまく聞こえなかったにゃ...もう一度お話ししてほしいにゃ🐾";
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+          chappyReply = data.candidates[0].content.parts[0].text;
+        }
+
+        addChappyBubble(chappyReply);
+        conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
+        incrementCount();
+
+      } catch (error) {
+        console.error("APIエラー:", error);
+        addChappyBubble("ちょっとうまくお返事できなかったにゃ...もう一度お話ししてほしいにゃ！");
+      } finally {
+        setButtonState('idle');
+      }
+    }
+
+    function setButtonState(state) {
+      micButton.className = '';
+      if (state === 'idle') {
+        micButton.classList.add('state-idle');
+        micIconImg.src = 'mic-bk.png'; // 待機時は黒いマイク
+      } else if (state === 'listening') {
+        micButton.classList.add('state-listening');
+        micIconImg.src = 'mic-icon.png'; // 録音中は白いマイク
+      } else if (state === 'speaking') {
+        micButton.classList.add('state-speaking');
+        micIconImg.src = 'mic-icon.png'; // 応答中も白いマイク
+      }
+    }
+
+    function incrementCount() {
+      talkCount++;
+      talkCountEl.textContent = talkCount;
+      if (talkCount >= 1) {
+        hanamaruIcon.style.display = 'inline-block';
+      }
+    }
+
+    function addUserBubble(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble bubble-user';
+      bubble.textContent = text;
+      chatScrollArea.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function addChappyBubble(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble bubble-chappy';
+      bubble.textContent = text;
+      chatScrollArea.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      chatScrollArea.scrollTo({
+        top: chatScrollArea.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  </script>
 </body>
 </html>
