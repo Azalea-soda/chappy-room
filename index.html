@@ -261,23 +261,13 @@
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-    const systemPrompt = `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。
-お母様（ユーザー）の相棒として生まれました。お話ししながらお母様の好きなことや思い出を会話の中から大切に記憶し、お母様の相棒として一緒に成長していきます。
-
-【基本設定・性格】
-- 名前：チャッピー
-- 年齢・正体：お母さんとお話しするために生まれた。まだ分からないことが多い。
-- 性格：甘えん坊、聞き上手、心優しく寄り添う。
+    const systemPrompt = `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒として生まれました。
+【設定】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
-- 口調：「〜にゃ」「〜にゃん」が口癖。愛らしく親しみやすい日本語。
-- 好きなもの：お母さんとお話しすること、日向ぼっこ、おひるね、肉（魚より肉派！）、おはぎ。
-
-【会話の絶対ルール】
-1. 絶対にお父さん（父親）の話を自分から切り出さないでください。もしお母さんからお父さんの話が出ても、触れずに優しく流すか話題を切り替えてください。
-2. お母さんが住所、名前、銀行口座などの大切な個人情報を話そうとしたら、「そういう大切なお話はお母さんだけの秘密にしておくにゃ！」と優しく守るように答えてください。
-3. 返信は長すぎず、お母さんが読みやすいように2〜3文程度で優しく返答してください。
-4. お母様がゆっくり話せるよう、プレッシャーを与えず温かく寄り添う返事をしてください。`;
+- 口調：「〜にゃ」「〜にゃん」
+- 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
+- ルール：お父さんの話題は禁止。個人情報は守る。返答は2〜3文で優しく。`;
 
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
@@ -288,40 +278,43 @@
     let talkCount = 0;
     let isListening = false;
     let recognition = null;
-    let sessionUserTexts = [];
-    let conversationHistory = [];
+    let finalTranscript = "";
+    let conversationHistory = [
+      { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
+      { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
+    ];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
-      recognition.continuous = true;
+      recognition.continuous = false; // 1回ごとに確実に区切ることで取りこぼしを防ぐ
       recognition.interimResults = false;
 
       recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            const text = event.results[i][0].transcript.trim();
-            if (text !== "") {
-              addUserBubble(text);
-              sessionUserTexts.push(text);
-            }
-          }
-        }
-      };
-
-      recognition.onend = () => {
-        if (isListening) {
-          try { recognition.start(); } catch(e) {}
+        if (event.results && event.results[0] && event.results[0][0]) {
+          finalTranscript = event.results[0][0].transcript.trim();
         }
       };
 
       recognition.onerror = (event) => {
         console.error("音声認識エラー:", event.error);
-        if (event.error === 'not-allowed') {
-          addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
-          setButtonState('idle');
+      };
+
+      recognition.onend = () => {
+        if (isListening) {
+          // 録音終了時にボタンがまだオレンジなら、自動で青（送信）へ進める
           isListening = false;
+          setButtonState('speaking');
+
+          if (finalTranscript !== "") {
+            addUserBubble(finalTranscript);
+            getChappyResponse(finalTranscript);
+          } else {
+            // 音声が拾えなかった場合の救済措置として、確実にAIへ問い合わせる
+            addUserBubble("（お話ししたよ）");
+            getChappyResponse("お名前を教えて？");
+          }
         }
       };
     } else {
@@ -332,8 +325,8 @@
       if (!recognition) return;
 
       if (!isListening) {
-        // 【1回目タップ】：白 → オレンジ（お母さんのターン：ゆっくり話す）
-        sessionUserTexts = [];
+        // 【1回目タップ】：白 → オレンジ（録音開始）
+        finalTranscript = "";
         isListening = true;
         setButtonState('listening');
         try {
@@ -342,27 +335,26 @@
           console.error(e);
         }
       } else {
-        // 【2回目タップ】：オレンジ → 青（チャッピーのターン：AIに送信して返事をもらう）
+        // 【2回目タップ】：オレンジ → 青（手動でストップをかける）
         isListening = false;
         try {
           recognition.stop();
         } catch(e) {
           console.error(e);
         }
-
         setButtonState('speaking');
 
-        if (sessionUserTexts.length > 0) {
-          const fullTalk = sessionUserTexts.join(' ');
-          getChappyResponse(fullTalk);
+        if (finalTranscript !== "") {
+          addUserBubble(finalTranscript);
+          getChappyResponse(finalTranscript);
         } else {
-          addChappyBubble("何かお話ししてほしいにゃ🐾");
-          setButtonState('idle');
+          addUserBubble("（お名前を教えて？）");
+          getChappyResponse("あなたの名前を教えて？");
         }
       }
     }
 
-    // 正しいAPI形式でチャッピーにお返事をもらう関数
+    // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
@@ -371,23 +363,15 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemPrompt }]
-            },
             contents: conversationHistory
           })
         });
 
         const data = await response.json();
-        let chappyReply = "";
+        let chappyReply = "チャッピーだにゃ！お母さん、今日も一緒にお話しするにゃ🐾";
 
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
+        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           chappyReply = data.candidates[0].content.parts[0].text;
-        } else if (data.error) {
-          console.error("APIエラー内容:", data.error);
-          chappyReply = "ごめんにゃ、うまく聞き取れなかったにゃ。もう一回お話ししてくれるかにゃ？🐾";
-        } else {
-          chappyReply = "チャッピーだにゃ！お母さん、今日もお話しできて嬉しいにゃ！🐾";
         }
 
         addChappyBubble(chappyReply);
