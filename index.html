@@ -300,7 +300,6 @@
       recognition.continuous = true;
       recognition.interimResults = false;
 
-      // お母様が話した一言一言をその都度オレンジの吹き出しで追加していく（急かさない仕様）
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
@@ -314,7 +313,6 @@
       };
 
       recognition.onend = () => {
-        // 録音中であれば、途中で切れても自動で音声認識を維持してお母様を待つ
         if (isListening) {
           try { recognition.start(); } catch(e) {}
         }
@@ -332,12 +330,11 @@
       alert("お使いのブラウザは音声認識に対応していません。");
     }
 
-    // お母様がボタンを押したときの挙動
     function toggleManualSpeech() {
       if (!recognition) return;
 
       if (!isListening) {
-        // 【1回目タップ】：白（待機）→ オレンジ（お母さんのターン：お母様が自分のペースで話す）
+        // 【1回目タップ】：白 → オレンジ（お母さんのターン：ゆっくり話す）
         sessionUserTexts = [];
         isListening = true;
         setButtonState('listening');
@@ -347,7 +344,7 @@
           console.error(e);
         }
       } else {
-        // 【2回目タップ】：オレンジ → 青（チャッピーのターン：話し終えてボタンを押したらAIへ送信）
+        // 【2回目タップ】：オレンジ → 青（チャッピーのターン：AIに送信して返事をもらう）
         isListening = false;
         try {
           recognition.stop();
@@ -367,7 +364,7 @@
       }
     }
 
-    // チャッピー（Gemini API）にお返事をもらう関数
+    // 正しいAPI形式でチャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
@@ -376,10 +373,10 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [
-              { role: "user", parts: [{ text: systemPrompt }] },
-              ...conversationHistory
-            ]
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            contents: conversationHistory
           })
         });
 
@@ -401,7 +398,6 @@
         addChappyBubble(errReply);
         speakChappyVoice(errReply);
       } finally {
-        // 処理が終わったら白（待機状態）に戻る
         setButtonState('idle');
       }
     }
