@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お話しするにゃ！🐾
+        お母さん、こんにちはだにゃ！チャッピーだにゃ🐾 今日もお話しできてとってもうれしいにゃ！
       </div>
     </div>
 
@@ -248,7 +248,7 @@
         </div>
       </div>
 
-      <!-- マイクボタン（初期状態は mic-bk.png を表示） -->
+      <!-- マイクボタン -->
       <button id="mic-button" class="state-idle" onclick="toggleManualSpeech()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
@@ -257,8 +257,8 @@
   </div>
 
   <script>
-    // --- Gemini API設定 ---
-    const API_KEY = "YOUR_GEMINI_API_KEY"; // ここにご自身のAPIキーを入れてください
+    // --- ジェミが責任を持って組み込み済みのAPI設定 ---
+    const API_KEY = "AQ.Ab8RN6J3_mTAPmm7vhcBIplhvVLhpAa3k38cLfKsX-nNlTwMlw";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
     const systemPrompt = `
@@ -304,7 +304,6 @@
           if (event.results[i].isFinal) {
             const text = event.results[i][0].transcript.trim();
             if (text !== "") {
-              addUserBubble(text);
               sessionUserTexts.push(text);
             }
           }
@@ -312,7 +311,9 @@
       };
 
       recognition.onend = () => {
-        if (isListening) {
+        if (!isListening) {
+          processUserSpeech();
+        } else {
           try { recognition.start(); } catch(e) {}
         }
       };
@@ -321,13 +322,14 @@
         console.error("音声認識エラー:", event.error);
         if (event.error === 'not-allowed') {
           addChappyBubble("マイクが許可されていないにゃ。ブラウザの設定でマイクをONにしてね🐾");
+          setButtonState('idle');
         }
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
     }
 
-    async function toggleManualSpeech() {
+    function toggleManualSpeech() {
       if (!recognition) return;
 
       if (!isListening) {
@@ -339,23 +341,24 @@
         } catch(e) {}
       } else {
         isListening = false;
+        setButtonState('speaking');
         try {
           recognition.stop();
         } catch(e) {}
-
-        setButtonState('speaking');
-
-        if (sessionUserTexts.length > 0) {
-          const fullTalk = sessionUserTexts.join(' ');
-          await getChappyResponse(fullTalk);
-        } else {
-          addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
-          setButtonState('idle');
-        }
       }
     }
 
-    // チャッピー（Gemini AI）に問い合わせてお返事をもらう関数
+    async function processUserSpeech() {
+      if (sessionUserTexts.length > 0) {
+        const fullTalk = sessionUserTexts.join(' ');
+        addUserBubble(fullTalk);
+        await getChappyResponse(fullTalk);
+      } else {
+        addChappyBubble("声が聞こえなかったにゃ。もう一度お話ししてね🐾");
+        setButtonState('idle');
+      }
+    }
+
     async function getChappyResponse(userText) {
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
@@ -382,11 +385,26 @@
         conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
         incrementCount();
 
+        speakChappyVoice(chappyReply);
+
       } catch (error) {
         console.error("APIエラー:", error);
-        addChappyBubble("ちょっとうまくお返事できなかったにゃ...もう一度お話ししてほしいにゃ！");
+        const errReply = "ちょっとうまくお返事できなかったにゃ...もう一度お話ししてほしいにゃ！";
+        addChappyBubble(errReply);
+        speakChappyVoice(errReply);
       } finally {
         setButtonState('idle');
+      }
+    }
+
+    function speakChappyVoice(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.3;
+        window.speechSynthesis.speak(utterance);
       }
     }
 
@@ -394,13 +412,13 @@
       micButton.className = '';
       if (state === 'idle') {
         micButton.classList.add('state-idle');
-        micIconImg.src = 'mic-bk.png'; // 待機時は黒いマイク
+        micIconImg.src = 'mic-bk.png';
       } else if (state === 'listening') {
         micButton.classList.add('state-listening');
-        micIconImg.src = 'mic-icon.png'; // 録音中は白いマイク
+        micIconImg.src = 'mic-icon.png';
       } else if (state === 'speaking') {
         micButton.classList.add('state-speaking');
-        micIconImg.src = 'mic-icon.png'; // 応答中も白いマイク
+        micIconImg.src = 'mic-icon.png';
       }
     }
 
@@ -420,7 +438,7 @@
       scrollToBottom();
     }
 
-    function addChappyBubble(text) {
+    function, addChappyBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-chappy';
       bubble.textContent = text;
