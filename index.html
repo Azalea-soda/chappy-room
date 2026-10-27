@@ -345,7 +345,7 @@
       }
     }
 
-    // ★ループの原因になる保険文言を完全に廃止し、AIの返答だけを素直に喋る関数
+    // ★定型文の逃げ道を完全撤去し、AIの返答を確実かつ正確に取得する関数
     async function getChappyResponse(userText) {
       try {
         const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
@@ -364,10 +364,12 @@
 
         const data = await response.json();
         
-        // AIからの返答を安全に取得（ループのトリガーになる定型文には絶対に落とし込まない）
-        let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (!reply) {
-          reply = "うんうん、よく聞こえたにゃ！もっとお話聞かせてね🐾";
+        // APIレスポンスから正確にテキストを抽出し、失敗時はユーザーの言葉をオウム返しして絶対に定型文を出さない
+        let reply = "";
+        try {
+          reply = data.candidates[0].content.parts[0].text.trim();
+        } catch (e) {
+          reply = `${userText}って言ってくれたんだね、もっと教えてにゃ🐾`;
         }
 
         addChappyBubble(reply);
@@ -380,7 +382,7 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        const fallbackReply = "お声が聞けて嬉しいにゃ🐾";
+        const fallbackReply = `${userText}、よく聞こえたにゃ🐾`;
         addChappyBubble(fallbackReply);
         
         speakChappyVoice(fallbackReply, () => {
