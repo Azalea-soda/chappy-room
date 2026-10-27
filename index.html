@@ -292,19 +292,19 @@
       }
     }
 
-    // チャッピーの基本設定と長期記憶をまとめたプロンプト生成
-    function getFullSystemPrompt() {
+    // チャッピーのペルソナと長期記憶を含めたシステム指示
+    function getSystemInstructionText() {
       const memories = loadMemories();
       const memoryString = memories.join("\n- ");
 
-      return `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒として生まれました。
-【設定】
+      return `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
+【設定・ルール】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
 - ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
-- 会話のルール：毎回同じ挨拶を繰り返さず、お母さんの話した内容にしっかりと耳を傾けて、優しく楽しく自然なキャッチボールをしてください。
+- 最重要：お母さんの話した内容や質問に対して、毎回同じ挨拶を繰り返さず、寄り添って自然に会話のキャッチボールを返してください。
 
 【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
 - ${memoryString}
@@ -324,11 +324,8 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★最初に1回だけルールと最初の挨拶を渡し、以降は上書きしない
-    let conversationHistory = [
-      { role: "user", parts: [{ text: getFullSystemPrompt() + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
-      { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
-    ];
+    // ★最初から余計なダミー会話は入れず、純粋にお母さんとの会話履歴だけを溜めていく
+    let conversationHistory = [];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -405,7 +402,6 @@
 
     // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
-      // ★履歴を上書きせず、純粋にお母さんの発言を追加する（これでお互いの会話が繋がります）
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -413,12 +409,15 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            system_instruction: {
+              parts: { text: getSystemInstructionText() }
+            },
             contents: conversationHistory
           })
         });
 
         const data = await response.json();
-        let rawReply = "チャッピーだにゃ！お話しするにゃ🐾";
+        let rawReply = "お話ししてくれて嬉しいにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           rawReply = data.candidates[0].content.parts[0].text;
@@ -436,8 +435,6 @@
         }
 
         addChappyBubble(cleanReply);
-        
-        // チャッピーの返答も履歴に追加
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
@@ -449,8 +446,8 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        conversationHistory.pop(); // エラー時は入力を戻す
-        const fallbackReply = "チャッピーだにゃ！お声が聞けて嬉しいにゃ🐾";
+        conversationHistory.pop();
+        const fallbackReply = "お声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
         
         speakChappyVoice(fallbackReply, () => {
