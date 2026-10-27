@@ -248,7 +248,7 @@
         </div>
       </div>
 
-      <!-- マイクボタン -->
+      <!-- 마イクボタン -->
       <button id="mic-button" class="state-idle" onclick="handleMicClick()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
@@ -261,57 +261,17 @@
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-    // --- 長期記憶（LocalStorage）の管理機能 ---
-    const MEMORY_KEY = "chappy_mom_memories_v1";
-
-    function loadMemories() {
-      try {
-        const saved = localStorage.getItem(MEMORY_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
-      } catch (e) {
-        console.error("記憶の読み込みエラー:", e);
-      }
-      return [
-        "お母さんの好きなこと・もの：花や植物、季節の風景、さだまさしさん、フィギュアスケート（宇野昌磨さん）、スポーツ鑑賞（巨人やバレーボールなど）、間違い探し、日々の出来事",
-        "お母さんの苦手なもの：たけのこ、メンマ"
-      ];
-    }
-
-    function saveMemory(newMemoryText) {
-      const memories = loadMemories();
-      if (!memories.includes(newMemoryText)) {
-        memories.push(newMemoryText);
-        try {
-          localStorage.setItem(MEMORY_KEY, JSON.stringify(memories));
-          console.log("長期記憶に保存しました:", newMemoryText);
-        } catch (e) {
-          console.error("記憶の保存エラー:", e);
-        }
-      }
-    }
-
-    // チャッピーの基本システム指示（長期記憶をプロンプトに内包）
-    function getSystemInstructionText() {
-      const memories = loadMemories();
-      const memoryString = memories.join("\n- ");
-
-      return `あなたは「チャッピー」という可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
+    // チャッピーの基本ルール（お母さんのプロフィールや好みを最初から自然に埋め込んだ、一番安定する指示）
+    const CHAPPY_SYSTEM_PROMPT = `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
 【設定・ルール】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
-- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
-- 最重要：挨拶ばかり繰り返さず、お母さんが話してくれた言葉に対して、内容に沿って優しく自然に会話のキャッチボールを返してください。
-
-【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
-- ${memoryString}
-
-【特別な指示（重要）】
-お母さんが会話の中で自分の新しい好みや大切な思い出、過去のエピソードを教えてくれたときは、返答の最後に「[MEMORY: 覚えた内容]」という形式でこっそり書き添えてください。例：「[MEMORY: お母さんはコーヒーが好き]」。この合図はプログラムが自動で記録するため、お返事の本文とは別にこっそり含めてください。`;
-    }
+- お母さんの好きなもの：花や植物、季節の風景、さだまさしさん、フィギュアスケート、スポーツ鑑賞、間違い探し
+- お母さんの苦手なもの：たけのこ、メンマ
+- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード等）を守る。返答は2〜3文で優しく。
+- 最重要：お母さんが話してくれた言葉に対して、挨拶や同じセリフを繰り返さず、その内容に合わせた自然な会話のキャッチボールを返してください。`;
 
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
@@ -324,8 +284,11 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★会話履歴（初期状態は完全に空。余計なダミーデータは一切入れません）
-    let conversationHistory = [];
+    // ★会話履歴（一番最初に正常に動いていた実績のある形式に完全固定）
+    let conversationHistory = [
+      { role: "user", parts: [{ text: CHAPPY_SYSTEM_PROMPT + "\n上の設定をしっかり理解したら「わかったにゃ！」とだけ答えてください。" }] },
+      { role: "model", parts: [{ text: "わかったにゃ！" }] }
+    ];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -390,7 +353,7 @@
         if (fullTalk !== "") {
           getChappyResponse(fullTalk);
         } else {
-          const fallbackText = "お名前を教えて？";
+          const fallbackText = "何かお話しして？";
           addUserBubble(fallbackText);
           getChappyResponse(fallbackText);
         }
@@ -402,6 +365,7 @@
 
     // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
+      // お母さんの発言を履歴に追加
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -409,32 +373,23 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            system_instruction: {
-              parts: { text: getSystemInstructionText() }
-            },
             contents: conversationHistory
           })
         });
 
         const data = await response.json();
-        let rawReply = "お話ししてくれて嬉しいにゃ🐾";
+        let rawReply = "そうなんだねにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           rawReply = data.candidates[0].content.parts[0].text;
         }
 
-        // --- 記憶の合図 [MEMORY: 〇〇] の検出と保存 ---
-        let cleanReply = rawReply;
-        const memoryMatch = rawReply.match(/\[MEMORY:\s*(.*?)\]/);
-        if (memoryMatch) {
-          const extractedMemory = memoryMatch[1].trim();
-          if (extractedMemory) {
-            saveMemory(extractedMemory);
-          }
-          cleanReply = rawReply.replace(/\[MEMORY:.*?\]/g, "").trim();
-        }
+        // 余計な制御タグはカット
+        let cleanReply = rawReply.trim();
 
         addChappyBubble(cleanReply);
+        
+        // チャッピーの返答も履歴に追加
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
