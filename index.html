@@ -276,10 +276,13 @@
     const hanamaruIcon = document.getElementById('hanamaru-icon');
 
     let talkCount = 0;
-    // 状態管理: 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
-    let currentState = 'idle'; 
+    let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
     let recognition = null;
-    let sessionUserTexts = [];
+    
+    // リアルタイム表示用の変数
+    let activeUserBubble = null;
+    let finalTranscriptBuffer = "";
+
     let conversationHistory = [
       { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
       { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
@@ -290,15 +293,33 @@
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = true;
-      recognition.interimResults = false;
+      recognition.interimResults = true; // ★ここがミソ：話している途中の言葉もリアルタイムで拾う
 
       recognition.onresult = (event) => {
+        let interimTranscript = "";
+        let newFinalTranscript = "";
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcriptPiece = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            const text = event.results[i][0].transcript.trim();
-            if (text !== "") {
-              sessionUserTexts.push(text);
-            }
+            newFinalTranscript += transcriptPiece;
+          } else {
+            interimTranscript += transcriptPiece;
+          }
+        }
+
+        if (newFinalTranscript !== "") {
+          finalTranscriptBuffer += newFinalTranscript;
+        }
+
+        // ★お母さんが話しているその瞬間にリアルタイムで吹き出しのテキストを更新して追いかけさせる
+        const displayText = finalTranscriptBuffer + interimTranscript;
+        if (displayText.trim() !== "") {
+          if (!activeUserBubble) {
+            activeUserBubble = createLiveUserBubble(displayText);
+          } else {
+            activeUserBubble.textContent = displayText;
+            scrollToBottom();
           }
         }
       };
@@ -308,7 +329,7 @@
       };
 
       recognition.onend = () => {
-        // 音声認識が勝手に切れても、ユーザーが2回目のタップをするまでは状態を変えない
+        // 音声認識が切れても、2回目タップされるまでは状態を維持
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
@@ -322,7 +343,10 @@
         // 【1回目タップ】：白（待機） → オレンジ（録音開始：お母さんのターン）
         currentState = 'listening';
         setButtonState('listening');
-        sessionUserTexts = [];
+        
+        finalTranscriptBuffer = "";
+        activeUserBubble = null; // 新しい発話用のバブルをリセット
+
         try {
           recognition.start();
         } catch(e) {
@@ -333,25 +357,37 @@
         // 【2回目タップ】：オレンジ → 青（送信・チャッピーターン）
         currentState = 'speaking';
         setButtonState('speaking');
+        
         try {
           recognition.stop();
         } catch(e) {
           console.error(e);
         }
 
-        const fullTalk = sessionUserTexts.join(' ').trim();
+        const fullTalk = finalTranscriptBuffer.trim();
         if (fullTalk !== "") {
-          addUserBubble(fullTalk);
+          // すでにリアルタイムで表示されているバブルを確定
+          if (activeUserBubble) {
+            activeUserBubble.textContent = fullTalk;
+          } else {
+            addUserBubble(fullTalk);
+          }
           getChappyResponse(fullTalk);
         } else {
-          // 何も聞こえなかった場合の救済
+          // 何も聞き取れなかった場合
+          if (activeUserBubble) {
+            activeUserBubble.remove();
+            activeUserBubble = null;
+          }
           const fallbackText = "お名前を教えて？";
           addUserBubble(fallbackText);
           getChappyResponse(fallbackText);
         }
 
+        activeUserBubble = null;
+
       } else if (currentState === 'speaking') {
-        // チャッピーが喋っている最中はクリックしても無視する（お母さんを待たせる）
+        // チャッピーが喋っている最中はクリックしても無視する
         console.log("チャッピーがお返事中です。お待ちください。");
       }
     }
@@ -441,6 +477,16 @@
       if (talkCount >= 1) {
         hanamaruIcon.style.display = 'inline-block';
       }
+    }
+
+    // リアルタイムで文字を更新していくための吹き出し生成
+    function createLiveUserBubble(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble bubble-user';
+      bubble.textContent = text;
+      chatScrollArea.appendChild(bubble);
+      scrollToBottom();
+      return bubble;
     }
 
     function addUserBubble(text) {
