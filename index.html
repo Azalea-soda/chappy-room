@@ -211,7 +211,7 @@
     /* 応答中状態：少し淡い青色の背景 */
     #mic-button.state-speaking {
       background-color: #7ab8ff;
-      box-shadow: 0 0 0 8px rgba(122, 184, 255, 0.4), 0 4px 14px (74, 144, 226, 0.2);
+      box-shadow: 0 0 0 8px rgba(122, 184, 255, 0.4), 0 4px 14px rgba(74, 144, 226, 0.2);
     }
 
     @keyframes pulse-orange {
@@ -345,7 +345,7 @@
       }
     }
 
-    // ★ループを完全に防ぐ、クリーンなAPI通信関数
+    // ★ループの原因になる保険文言を完全に廃止し、AIの返答だけを素直に喋る関数
     async function getChappyResponse(userText) {
       try {
         const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
@@ -364,10 +364,10 @@
 
         const data = await response.json();
         
-        // 安全にAIの返答を取り出す（もし取れなかった場合もループ文言ではなく自然な猫語にする）
+        // AIからの返答を安全に取得（ループのトリガーになる定型文には絶対に落とし込まない）
         let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
         if (!reply) {
-          reply = "お話しできて楽しいにゃ🐾 もっと教えてね！";
+          reply = "うんうん、よく聞こえたにゃ！もっとお話聞かせてね🐾";
         }
 
         addChappyBubble(reply);
