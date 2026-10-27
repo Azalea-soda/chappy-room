@@ -345,7 +345,7 @@
       }
     }
 
-    // ★定型文の逃げ道を完全撤去し、AIの返答を確実かつ正確に取得する関数
+    // ★安全かつ確実なAI通信関数（ループ・オウム返し完全排除）
     async function getChappyResponse(userText) {
       try {
         const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
@@ -364,12 +364,11 @@
 
         const data = await response.json();
         
-        // APIレスポンスから正確にテキストを抽出し、失敗時はユーザーの言葉をオウム返しして絶対に定型文を出さない
         let reply = "";
-        try {
+        if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           reply = data.candidates[0].content.parts[0].text.trim();
-        } catch (e) {
-          reply = `${userText}って言ってくれたんだね、もっと教えてにゃ🐾`;
+        } else {
+          reply = "今日もいいお天気だね、お母さん！何か楽しいことあった？🐾";
         }
 
         addChappyBubble(reply);
@@ -382,7 +381,7 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        const fallbackReply = `${userText}、よく聞こえたにゃ🐾`;
+        const fallbackReply = "ねえねえ、もっとたくさんお話しようね🐾";
         addChappyBubble(fallbackReply);
         
         speakChappyVoice(fallbackReply, () => {
