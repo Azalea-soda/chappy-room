@@ -292,13 +292,13 @@
       }
     }
 
-    // チャッピーの基本システム指示（システムプロンプト）
-    function getSystemInstruction() {
+    // システム指示と記憶をまとめたプロンプト生成
+    function getFullSystemPrompt() {
       const memories = loadMemories();
       const memoryString = memories.join("\n- ");
 
       return `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒として生まれました。
-【基本設定】
+【設定】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
@@ -323,8 +323,11 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★会話履歴（ここにユーザーとチャッピーのやり取りがきちんと蓄積されていきます）
-    let conversationHistory = [];
+    // ★一番最初に動いていた安定の履歴形式に戻す（先頭にシステム設定を配置）
+    let conversationHistory = [
+      { role: "user", parts: [{ text: getFullSystemPrompt() + "\n上の設定と記憶をしっかり理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
+      { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
+    ];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -401,7 +404,10 @@
 
     // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
-      // 1. お母さんの発言を履歴に追加
+      // 毎回最新の長期記憶をプロンプトに反映させるため、履歴の先頭（システム指示）を最新の状態に更新
+      conversationHistory[0] = { role: "user", parts: [{ text: getFullSystemPrompt() + "\n現在の状況を踏まえてお返事してください。" }] };
+      
+      // お母さんの発言を履歴に追加
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -409,15 +415,12 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            system_instruction: {
-              parts: { text: getSystemInstruction() }
-            },
             contents: conversationHistory
           })
         });
 
         const data = await response.json();
-        let rawReply = "お話しできて嬉しいにゃ🐾";
+        let rawReply = "チャッピーだにゃ！お話しするにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           rawReply = data.candidates[0].content.parts[0].text;
@@ -436,7 +439,7 @@
 
         addChappyBubble(cleanReply);
         
-        // 2. チャッピーの返答も履歴に追加（これで文脈が繋がります！）
+        // チャッピーの返答を履歴に追加
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
@@ -448,8 +451,8 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        conversationHistory.pop(); // エラー時は直前の入力を戻す
-        const fallbackReply = "お母さんのお声が聞けて嬉しいにゃ🐾";
+        conversationHistory.pop(); // エラー時は入力を戻す
+        const fallbackReply = "チャッピーだにゃ！お声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
         
         speakChappyVoice(fallbackReply, () => {
