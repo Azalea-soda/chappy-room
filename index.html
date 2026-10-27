@@ -303,7 +303,7 @@
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
-- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
+- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。挨拶ばかり繰り返さず、お母さんの言葉にしっかり寄り添って自然に会話してください。
 
 【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
 - ${memoryString}
@@ -323,7 +323,7 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★Gemini APIの正しいフォーマット（systemInstruction と contents を分離）
+    // ★会話履歴（ここにユーザーとチャッピーのやり取りがきちんと蓄積されていきます）
     let conversationHistory = [];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -399,13 +399,12 @@
       }
     }
 
-    // チャッピーにお返事をもらう関数（正しいAPI構造）
+    // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
-      // ユーザーの発言を会話履歴に追加
+      // 1. お母さんの発言を履歴に追加
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
-        // ★Gemini APIの正しい仕様：systemInstructionで性格と記憶を渡し、contentsで実際の会話を渡す
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -418,7 +417,7 @@
         });
 
         const data = await response.json();
-        let rawReply = "チャッピーだにゃ！お母さん、今日も一緒にお話しするにゃ🐾";
+        let rawReply = "お話しできて嬉しいにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           rawReply = data.candidates[0].content.parts[0].text;
@@ -436,7 +435,8 @@
         }
 
         addChappyBubble(cleanReply);
-        // チャッピーの返答も会話履歴に追加して、次の文脈をつなげる
+        
+        // 2. チャッピーの返答も履歴に追加（これで文脈が繋がります！）
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
@@ -448,8 +448,8 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        conversationHistory.pop();
-        const fallbackReply = "チャッピーだにゃ！お母さんのお声が聞けて嬉しいにゃ🐾";
+        conversationHistory.pop(); // エラー時は直前の入力を戻す
+        const fallbackReply = "お母さんのお声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
         
         speakChappyVoice(fallbackReply, () => {
