@@ -292,7 +292,7 @@
       }
     }
 
-    // システム指示と記憶をまとめたプロンプト生成
+    // チャッピーの基本設定と長期記憶をまとめたプロンプト生成
     function getFullSystemPrompt() {
       const memories = loadMemories();
       const memoryString = memories.join("\n- ");
@@ -303,7 +303,8 @@
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
-- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。挨拶ばかり繰り返さず、お母さんの言葉にしっかり寄り添って自然に会話してください。
+- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
+- 会話のルール：毎回同じ挨拶を繰り返さず、お母さんの話した内容にしっかりと耳を傾けて、優しく楽しく自然なキャッチボールをしてください。
 
 【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
 - ${memoryString}
@@ -323,9 +324,9 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★一番最初に動いていた安定の履歴形式に戻す（先頭にシステム設定を配置）
+    // ★最初に1回だけルールと最初の挨拶を渡し、以降は上書きしない
     let conversationHistory = [
-      { role: "user", parts: [{ text: getFullSystemPrompt() + "\n上の設定と記憶をしっかり理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
+      { role: "user", parts: [{ text: getFullSystemPrompt() + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
       { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
     ];
 
@@ -404,10 +405,7 @@
 
     // チャッピーにお返事をもらう関数
     async function getChappyResponse(userText) {
-      // 毎回最新の長期記憶をプロンプトに反映させるため、履歴の先頭（システム指示）を最新の状態に更新
-      conversationHistory[0] = { role: "user", parts: [{ text: getFullSystemPrompt() + "\n現在の状況を踏まえてお返事してください。" }] };
-      
-      // お母さんの発言を履歴に追加
+      // ★履歴を上書きせず、純粋にお母さんの発言を追加する（これでお互いの会話が繋がります）
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -439,7 +437,7 @@
 
         addChappyBubble(cleanReply);
         
-        // チャッピーの返答を履歴に追加
+        // チャッピーの返答も履歴に追加
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
