@@ -279,9 +279,9 @@
     let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
     let recognition = null;
     
-    // リアルタイム表示用の変数
+    // リアルタイム表示・蓄積用の変数
     let activeUserBubble = null;
-    let finalTranscriptBuffer = "";
+    let accumulatedTranscript = ""; // ここに話した言葉をどんどん繋げていく
 
     let conversationHistory = [
       { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
@@ -293,28 +293,29 @@
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = true;
-      recognition.interimResults = true; // ★ここがミソ：話している途中の言葉もリアルタイムで拾う
+      recognition.interimResults = true;
 
       recognition.onresult = (event) => {
         let interimTranscript = "";
-        let newFinalTranscript = "";
+        let currentFinal = "";
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           const transcriptPiece = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            newFinalTranscript += transcriptPiece;
+            currentFinal += transcriptPiece;
           } else {
             interimTranscript += transcriptPiece;
           }
         }
 
-        if (newFinalTranscript !== "") {
-          finalTranscriptBuffer += newFinalTranscript;
+        if (currentFinal !== "") {
+          accumulatedTranscript += currentFinal + " ";
         }
 
-        // ★お母さんが話しているその瞬間にリアルタイムで吹き出しのテキストを更新して追いかけさせる
-        const displayText = finalTranscriptBuffer + interimTranscript;
-        if (displayText.trim() !== "") {
+        // 画面に表示するテキスト（確定分 ＋ いま喋っている途中分）
+        const displayText = (accumulatedTranscript + interimTranscript).trim();
+        
+        if (displayText !== "") {
           if (!activeUserBubble) {
             activeUserBubble = createLiveUserBubble(displayText);
           } else {
@@ -324,12 +325,19 @@
         }
       };
 
-      recognition.onerror = (event) => {
-        console.error("音声認識エラー:", event.error);
+      // ★超重要：途中で音声認識が勝手に切れても、オレンジボタン（listening）のままであれば自動で再起動して聞き取りを継続させる
+      recognition.onend = () => {
+        if (currentState === 'listening') {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.log("再起動スキップ:", e);
+          }
+        }
       };
 
-      recognition.onend = () => {
-        // 音声認識が切れても、2回目タップされるまでは状態を維持
+      recognition.onerror = (event) => {
+        console.error("音声認識エラー:", event.error);
       };
     } else {
       alert("お使いのブラウザは音声認識に対応していません。");
@@ -344,8 +352,8 @@
         currentState = 'listening';
         setButtonState('listening');
         
-        finalTranscriptBuffer = "";
-        activeUserBubble = null; // 新しい発話用のバブルをリセット
+        accumulatedTranscript = "";
+        activeUserBubble = null;
 
         try {
           recognition.start();
@@ -364,17 +372,11 @@
           console.error(e);
         }
 
-        const fullTalk = finalTranscriptBuffer.trim();
+        const fullTalk = (activeUserBubble ? activeUserBubble.textContent : "").trim();
+        
         if (fullTalk !== "") {
-          // すでにリアルタイムで表示されているバブルを確定
-          if (activeUserBubble) {
-            activeUserBubble.textContent = fullTalk;
-          } else {
-            addUserBubble(fullTalk);
-          }
           getChappyResponse(fullTalk);
         } else {
-          // 何も聞き取れなかった場合
           if (activeUserBubble) {
             activeUserBubble.remove();
             activeUserBubble = null;
@@ -479,7 +481,6 @@
       }
     }
 
-    // リアルタイムで文字を更新していくための吹き出し生成
     function createLiveUserBubble(text) {
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble bubble-user';
