@@ -248,7 +248,7 @@
         </div>
       </div>
 
-      <!-- 마イクボタン -->
+      <!-- マイクボタン -->
       <button id="mic-button" class="state-idle" onclick="handleMicClick()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
@@ -261,18 +261,6 @@
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-    // チャッピーの基本ルール（お母さんのプロフィールや好みを最初から自然に埋め込んだ、一番安定する指示）
-    const CHAPPY_SYSTEM_PROMPT = `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
-【設定・ルール】
-- 一人称：チャッピー
-- 相手の呼び方：お母さん
-- 口調：「〜にゃ」「〜にゃん」
-- 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
-- お母さんの好きなもの：花や植物、季節の風景、さだまさしさん、フィギュアスケート、スポーツ鑑賞、間違い探し
-- お母さんの苦手なもの：たけのこ、メンマ
-- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード等）を守る。返答は2〜3文で優しく。
-- 最重要：お母さんが話してくれた言葉に対して、挨拶や同じセリフを繰り返さず、その内容に合わせた自然な会話のキャッチボールを返してください。`;
-
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
     const micIconImg = document.getElementById('mic-icon-img');
@@ -283,12 +271,6 @@
     let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
     let recognition = null;
     let sessionUserTexts = [];
-
-    // ★会話履歴（一番最初に正常に動いていた実績のある形式に完全固定）
-    let conversationHistory = [
-      { role: "user", parts: [{ text: CHAPPY_SYSTEM_PROMPT + "\n上の設定をしっかり理解したら「わかったにゃ！」とだけ答えてください。" }] },
-      { role: "model", parts: [{ text: "わかったにゃ！" }] }
-    ];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -353,7 +335,7 @@
         if (fullTalk !== "") {
           getChappyResponse(fullTalk);
         } else {
-          const fallbackText = "何かお話しして？";
+          const fallbackText = "こんにちは";
           addUserBubble(fallbackText);
           getChappyResponse(fallbackText);
         }
@@ -363,45 +345,42 @@
       }
     }
 
-    // チャッピーにお返事をもらう関数
+    // ★完全リセット版：お母さんの言葉をストレートにAIに投げて、ループを物理的に発生させない関数
     async function getChappyResponse(userText) {
-      // お母さんの発言を履歴に追加
-      conversationHistory.push({ role: "user", parts: [{ text: userText }] });
-
       try {
+        // AIに対する命令と、お母さんの言葉を一つにまとめて毎回新鮮に送る
+        const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
+お母さんの言葉：「${userText}」
+この言葉に優しく寄り添って、楽しくお返事してね：`;
+
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: conversationHistory
+            contents: [
+              { role: "user", parts: [{ text: promptText }] }
+            ]
           })
         });
 
         const data = await response.json();
-        let rawReply = "そうなんだねにゃ🐾";
+        let reply = "お話しできて嬉しいにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
-          rawReply = data.candidates[0].content.parts[0].text;
+          reply = data.candidates[0].content.parts[0].text.trim();
         }
 
-        // 余計な制御タグはカット
-        let cleanReply = rawReply.trim();
-
-        addChappyBubble(cleanReply);
-        
-        // チャッピーの返答も履歴に追加
-        conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
+        addChappyBubble(reply);
         incrementCount();
         
         // 音声読み上げ（絵文字フィルター適用で「あしあと」と呼ばなくなります）
-        speakChappyVoice(cleanReply, () => {
+        speakChappyVoice(reply, () => {
           currentState = 'idle';
           setButtonState('idle');
         });
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        conversationHistory.pop();
         const fallbackReply = "お声が聞けて嬉しいにゃ🐾";
         addChappyBubble(fallbackReply);
         
@@ -440,15 +419,10 @@
     }
 
     function setButtonState(state) {
-      micButton.className = '';
+      micButton.className = 'state-' + state;
       if (state === 'idle') {
-        micButton.classList.add('state-idle');
         micIconImg.src = 'mic-bk.png';
-      } else if (state === 'listening') {
-        micButton.classList.add('state-listening');
-        micIconImg.src = 'mic-icon.png';
-      } else if (state === 'speaking') {
-        micButton.classList.add('state-speaking');
+      } else {
         micIconImg.src = 'mic-icon.png';
       }
     }
