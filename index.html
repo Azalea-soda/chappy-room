@@ -279,9 +279,8 @@
     let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
     let recognition = null;
     
-    // リアルタイム表示・蓄積用の変数
-    let activeUserBubble = null;
-    let accumulatedTranscript = ""; // ここに話した言葉をどんどん繋げていく
+    // お母さんが今回のターンで話したすべてのセリフを蓄積する配列
+    let sessionUserTexts = [];
 
     let conversationHistory = [
       { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
@@ -293,39 +292,22 @@
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.interimResults = false; // ★確定したひと言（isFinal）ごとに確実に区切る
 
       recognition.onresult = (event) => {
-        let interimTranscript = "";
-        let currentFinal = "";
-
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const transcriptPiece = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            currentFinal += transcriptPiece;
-          } else {
-            interimTranscript += transcriptPiece;
-          }
-        }
-
-        if (currentFinal !== "") {
-          accumulatedTranscript += currentFinal + " ";
-        }
-
-        // 画面に表示するテキスト（確定分 ＋ いま喋っている途中分）
-        const displayText = (accumulatedTranscript + interimTranscript).trim();
-        
-        if (displayText !== "") {
-          if (!activeUserBubble) {
-            activeUserBubble = createLiveUserBubble(displayText);
-          } else {
-            activeUserBubble.textContent = displayText;
-            scrollToBottom();
+            const text = event.results[i][0].transcript.trim();
+            if (text !== "") {
+              sessionUserTexts.push(text);
+              // ★一言終わるごとに、新しい吹き出しをちゃんと独立してぽこぽこ追加する
+              addUserBubble(text);
+            }
           }
         }
       };
 
-      // ★超重要：途中で音声認識が勝手に切れても、オレンジボタン（listening）のままであれば自動で再起動して聞き取りを継続させる
+      // 途中で音声認識が切れても、オレンジボタンの間は自動で再起動して次の言葉を待つ
       recognition.onend = () => {
         if (currentState === 'listening') {
           try {
@@ -352,8 +334,7 @@
         currentState = 'listening';
         setButtonState('listening');
         
-        accumulatedTranscript = "";
-        activeUserBubble = null;
+        sessionUserTexts = [];
 
         try {
           recognition.start();
@@ -372,21 +353,17 @@
           console.error(e);
         }
 
-        const fullTalk = (activeUserBubble ? activeUserBubble.textContent : "").trim();
+        const fullTalk = sessionUserTexts.join(' ').trim();
         
         if (fullTalk !== "") {
+          // すでにリアルタイムで個別に出ているので追加の吹き出しは不要。そのままAIへ送信
           getChappyResponse(fullTalk);
         } else {
-          if (activeUserBubble) {
-            activeUserBubble.remove();
-            activeUserBubble = null;
-          }
+          // もし何も聞き取れていなかった場合
           const fallbackText = "お名前を教えて？";
           addUserBubble(fallbackText);
           getChappyResponse(fallbackText);
         }
-
-        activeUserBubble = null;
 
       } else if (currentState === 'speaking') {
         // チャッピーが喋っている最中はクリックしても無視する
@@ -479,15 +456,6 @@
       if (talkCount >= 1) {
         hanamaruIcon.style.display = 'inline-block';
       }
-    }
-
-    function createLiveUserBubble(text) {
-      const bubble = document.createElement('div');
-      bubble.className = 'chat-bubble bubble-user';
-      bubble.textContent = text;
-      chatScrollArea.appendChild(bubble);
-      scrollToBottom();
-      return bubble;
     }
 
     function addUserBubble(text) {
