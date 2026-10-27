@@ -292,19 +292,19 @@
       }
     }
 
-    // チャッピーのペルソナと長期記憶を含めたシステム指示
+    // チャッピーの基本システム指示（長期記憶をプロンプトに内包）
     function getSystemInstructionText() {
       const memories = loadMemories();
       const memoryString = memories.join("\n- ");
 
-      return `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
+      return `あなたは「チャッピー」という可愛い猫のキャラクターです。お母様の相棒としてお話ししています。
 【設定・ルール】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
 - ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
-- 最重要：お母さんの話した内容や質問に対して、毎回同じ挨拶を繰り返さず、寄り添って自然に会話のキャッチボールを返してください。
+- 最重要：挨拶ばかり繰り返さず、お母さんが話してくれた言葉に対して、内容に沿って優しく自然に会話のキャッチボールを返してください。
 
 【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
 - ${memoryString}
@@ -324,7 +324,7 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    // ★最初から余計なダミー会話は入れず、純粋にお母さんとの会話履歴だけを溜めていく
+    // ★会話履歴（初期状態は完全に空。余計なダミーデータは一切入れません）
     let conversationHistory = [];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -438,7 +438,7 @@
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
-        // 音声読み上げ（絵文字フィルター適用）
+        // 音声読み上げ（絵文字フィルター適用で「あしあと」と呼ばなくなります）
         speakChappyVoice(cleanReply, () => {
           currentState = 'idle';
           setButtonState('idle');
