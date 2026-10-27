@@ -273,7 +273,6 @@
       } catch (e) {
         console.error("記憶の読み込みエラー:", e);
       }
-      // 初期デフォルトの長期記憶（お母様の基本プロフィール）
       return [
         "お母さんの好きなこと・もの：花や植物、季節の風景、さだまさしさん、フィギュアスケート（宇野昌磨さん）、スポーツ鑑賞（巨人やバレーボールなど）、間違い探し、日々の出来事",
         "お母さんの苦手なもの：たけのこ、メンマ"
@@ -293,8 +292,8 @@
       }
     }
 
-    // チャッピーの脳みそ（システムプロンプト）を構築
-    function getSystemPrompt() {
+    // チャッピーの基本システム指示（システムプロンプト）
+    function getSystemInstruction() {
       const memories = loadMemories();
       const memoryString = memories.join("\n- ");
 
@@ -310,7 +309,7 @@
 - ${memoryString}
 
 【特別な指示（重要）】
-お母さんが会話の中で自分の新しい好みや大切な思い出、過去のエピソードを教えてくれたときは、返答の最後に「[MEMORY: 覚えた内容]」という形式でこっそり書き添えてください。例：「[MEMORY: お母さんはコーヒーが好き]」。この合図はチャッピーのプログラムが自動で記録するため、お返事の本文とは別にこっそり含めてください。`;
+お母さんが会話の中で自分の新しい好みや大切な思い出、過去のエピソードを教えてくれたときは、返答の最後に「[MEMORY: 覚えた内容]」という形式でこっそり書き添えてください。例：「[MEMORY: お母さんはコーヒーが好き]」。この合図はプログラムが自動で記録するため、お返事の本文とは別にこっそり含めてください。`;
     }
 
     const chatScrollArea = document.getElementById('chat-scroll-area');
@@ -324,10 +323,8 @@
     let recognition = null;
     let sessionUserTexts = [];
 
-    let conversationHistory = [
-      { role: "user", parts: [{ text: getSystemPrompt() + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
-      { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
-    ];
+    // ★Gemini APIの正しいフォーマット（systemInstruction と contents を分離）
+    let conversationHistory = [];
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -402,17 +399,20 @@
       }
     }
 
-    // チャッピーにお返事をもらう関数（長期記憶の抽出・保存機能つき）
+    // チャッピーにお返事をもらう関数（正しいAPI構造）
     async function getChappyResponse(userText) {
-      // 毎回最新の記憶（プロンプト）を反映させるため、履歴の先頭（システムプロンプト）を更新
-      conversationHistory[0] = { role: "user", parts: [{ text: getSystemPrompt() + "\n現在の状況を踏まえてお返事してください。" }] };
+      // ユーザーの発言を会話履歴に追加
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
+        // ★Gemini APIの正しい仕様：systemInstructionで性格と記憶を渡し、contentsで実際の会話を渡す
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            system_instruction: {
+              parts: { text: getSystemInstruction() }
+            },
             contents: conversationHistory
           })
         });
@@ -424,7 +424,7 @@
           rawReply = data.candidates[0].content.parts[0].text;
         }
 
-        // --- 記憶の合図 [MEMORY: 〇〇] を検出して保存する処理 ---
+        // --- 記憶の合図 [MEMORY: 〇〇] の検出と保存 ---
         let cleanReply = rawReply;
         const memoryMatch = rawReply.match(/\[MEMORY:\s*(.*?)\]/);
         if (memoryMatch) {
@@ -432,15 +432,15 @@
           if (extractedMemory) {
             saveMemory(extractedMemory);
           }
-          // お母様に見せるテキストや音声からは [MEMORY: ...] をきれいに取り除く
           cleanReply = rawReply.replace(/\[MEMORY:.*?\]/g, "").trim();
         }
 
         addChappyBubble(cleanReply);
+        // チャッピーの返答も会話履歴に追加して、次の文脈をつなげる
         conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
-        // 音声読み上げ開始（※ここで絵文字を消去するフィルターを通すため「あしあと」と読まなくなります！）
+        // 音声読み上げ（絵文字フィルター適用）
         speakChappyVoice(cleanReply, () => {
           currentState = 'idle';
           setButtonState('idle');
@@ -461,14 +461,12 @@
 
     // ★絵文字読み上げ禁止フィルター（音声合成用）
     function removeEmojis(text) {
-      // 絵文字や特殊な記号（🐾など）のパターンを置換して空文字にする
       return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2605}\u{1F43E}\u{1F431}\u{1F436}\u{1F415}\u{1F408}\u{1F33B}\u{1F33C}\u{1F338}\u{1F337}\u{1F339}\u{1F33A}\u{1F340}\u{1F341}\u{1F496}\u{1F497}\u{1F498}\u{1F499}\u{1F49A}\u{1F49B}\u{1F49C}\u{1F49D}\u{1F49E}\u{1F49F}\u{2764}\u{1F90E}\u{1F90F}\u{1F494}\u{1F48C}\u{1F48D}\u{1F48E}\u{1F48F}\u{1F490}\u{1F491}\u{1F492}\u{1F493}]/gu, '');
     }
 
     function speakChappyVoice(text, callback) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        // 読み上げ直前に絵文字を完全消去！これで「あしあと」と言わなくなります
         const speechText = removeEmojis(text);
         const utterance = new SpeechSynthesisUtterance(speechText);
         utterance.lang = 'ja-JP';
