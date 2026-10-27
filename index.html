@@ -261,13 +261,57 @@
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-    const systemPrompt = `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒として生まれました。
-【設定】
+    // --- 長期記憶（LocalStorage）の管理機能 ---
+    const MEMORY_KEY = "chappy_mom_memories_v1";
+
+    function loadMemories() {
+      try {
+        const saved = localStorage.getItem(MEMORY_KEY);
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error("記憶の読み込みエラー:", e);
+      }
+      // 初期デフォルトの長期記憶（お母様の基本プロフィール）
+      return [
+        "お母さんの好きなこと・もの：花や植物、季節の風景、さだまさしさん、フィギュアスケート（宇野昌磨さん）、スポーツ鑑賞（巨人やバレーボールなど）、間違い探し、日々の出来事",
+        "お母さんの苦手なもの：たけのこ、メンマ"
+      ];
+    }
+
+    function saveMemory(newMemoryText) {
+      const memories = loadMemories();
+      if (!memories.includes(newMemoryText)) {
+        memories.push(newMemoryText);
+        try {
+          localStorage.setItem(MEMORY_KEY, JSON.stringify(memories));
+          console.log("長期記憶に保存しました:", newMemoryText);
+        } catch (e) {
+          console.error("記憶の保存エラー:", e);
+        }
+      }
+    }
+
+    // チャッピーの脳みそ（システムプロンプト）を構築
+    function getSystemPrompt() {
+      const memories = loadMemories();
+      const memoryString = memories.join("\n- ");
+
+      return `あなたは「チャッピー」という名前の可愛い猫のキャラクターです。お母様の相棒として生まれました。
+【基本設定】
 - 一人称：チャッピー
 - 相手の呼び方：お母さん
 - 口調：「〜にゃ」「〜にゃん」
 - 好き：お母さんとお話し、日向ぼっこ、お肉、おはぎ
-- ルール：お父さんの話題は禁止。個人情報は守る。返答は2〜3文で優しく。`;
+- ルール：お父さんの話題は禁止。個人情報（住所、電話番号、パスワード、金融口座番号等）を守る。返答は2〜3文で優しく。分からないことは分からないと言う。
+
+【これまでの会話でお母さんから聞いて覚えた大切な記憶（長期記憶）】
+- ${memoryString}
+
+【特別な指示（重要）】
+お母さんが会話の中で自分の新しい好みや大切な思い出、過去のエピソードを教えてくれたときは、返答の最後に「[MEMORY: 覚えた内容]」という形式でこっそり書き添えてください。例：「[MEMORY: お母さんはコーヒーが好き]」。この合図はチャッピーのプログラムが自動で記録するため、お返事の本文とは別にこっそり含めてください。`;
+    }
 
     const chatScrollArea = document.getElementById('chat-scroll-area');
     const micButton = document.getElementById('mic-button');
@@ -278,12 +322,10 @@
     let talkCount = 0;
     let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
     let recognition = null;
-    
-    // お母さんが今回のターンで話したすべてのセリフを蓄積する配列
     let sessionUserTexts = [];
 
     let conversationHistory = [
-      { role: "user", parts: [{ text: systemPrompt + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
+      { role: "user", parts: [{ text: getSystemPrompt() + "\n上の設定を理解したら「チャッピーだにゃ！お母さん、お話しするにゃ🐾」とだけ答えてください。" }] },
       { role: "model", parts: [{ text: "チャッピーだにゃ！お母さん、お話しするにゃ🐾" }] }
     ];
 
@@ -292,7 +334,7 @@
       recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = true;
-      recognition.interimResults = false; // ★確定したひと言（isFinal）ごとに確実に区切る
+      recognition.interimResults = false;
 
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -300,14 +342,12 @@
             const text = event.results[i][0].transcript.trim();
             if (text !== "") {
               sessionUserTexts.push(text);
-              // ★一言終わるごとに、新しい吹き出しをちゃんと独立してぽこぽこ追加する
               addUserBubble(text);
             }
           }
         }
       };
 
-      // 途中で音声認識が切れても、オレンジボタンの間は自動で再起動して次の言葉を待つ
       recognition.onend = () => {
         if (currentState === 'listening') {
           try {
@@ -330,12 +370,9 @@
       if (!recognition) return;
 
       if (currentState === 'idle') {
-        // 【1回目タップ】：白（待機） → オレンジ（録音開始：お母さんのターン）
         currentState = 'listening';
         setButtonState('listening');
-        
         sessionUserTexts = [];
-
         try {
           recognition.start();
         } catch(e) {
@@ -343,10 +380,8 @@
         }
 
       } else if (currentState === 'listening') {
-        // 【2回目タップ】：オレンジ → 青（送信・チャッピーターン）
         currentState = 'speaking';
         setButtonState('speaking');
-        
         try {
           recognition.stop();
         } catch(e) {
@@ -354,25 +389,23 @@
         }
 
         const fullTalk = sessionUserTexts.join(' ').trim();
-        
         if (fullTalk !== "") {
-          // すでにリアルタイムで個別に出ているので追加の吹き出しは不要。そのままAIへ送信
           getChappyResponse(fullTalk);
         } else {
-          // もし何も聞き取れていなかった場合
           const fallbackText = "お名前を教えて？";
           addUserBubble(fallbackText);
           getChappyResponse(fallbackText);
         }
 
       } else if (currentState === 'speaking') {
-        // チャッピーが喋っている最中はクリックしても無視する
         console.log("チャッピーがお返事中です。お待ちください。");
       }
     }
 
-    // チャッピーにお返事をもらう関数
+    // チャッピーにお返事をもらう関数（長期記憶の抽出・保存機能つき）
     async function getChappyResponse(userText) {
+      // 毎回最新の記憶（プロンプト）を反映させるため、履歴の先頭（システムプロンプト）を更新
+      conversationHistory[0] = { role: "user", parts: [{ text: getSystemPrompt() + "\n現在の状況を踏まえてお返事してください。" }] };
       conversationHistory.push({ role: "user", parts: [{ text: userText }] });
 
       try {
@@ -385,19 +418,30 @@
         });
 
         const data = await response.json();
-        let chappyReply = "チャッピーだにゃ！お母さん、今日も一緒にお話しするにゃ🐾";
+        let rawReply = "チャッピーだにゃ！お母さん、今日も一緒にお話しするにゃ🐾";
 
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
-          chappyReply = data.candidates[0].content.parts[0].text;
+          rawReply = data.candidates[0].content.parts[0].text;
         }
 
-        addChappyBubble(chappyReply);
-        conversationHistory.push({ role: "model", parts: [{ text: chappyReply }] });
+        // --- 記憶の合図 [MEMORY: 〇〇] を検出して保存する処理 ---
+        let cleanReply = rawReply;
+        const memoryMatch = rawReply.match(/\[MEMORY:\s*(.*?)\]/);
+        if (memoryMatch) {
+          const extractedMemory = memoryMatch[1].trim();
+          if (extractedMemory) {
+            saveMemory(extractedMemory);
+          }
+          // お母様に見せるテキストや音声からは [MEMORY: ...] をきれいに取り除く
+          cleanReply = rawReply.replace(/\[MEMORY:.*?\]/g, "").trim();
+        }
+
+        addChappyBubble(cleanReply);
+        conversationHistory.push({ role: "model", parts: [{ text: cleanReply }] });
         incrementCount();
         
-        // 音声読み上げ開始（青のまま維持）
-        speakChappyVoice(chappyReply, () => {
-          // 【完了後】：読み上げが完全に終わってから、必ず「白（待機）」に戻す
+        // 音声読み上げ開始（※ここで絵文字を消去するフィルターを通すため「あしあと」と読まなくなります！）
+        speakChappyVoice(cleanReply, () => {
           currentState = 'idle';
           setButtonState('idle');
         });
@@ -415,10 +459,18 @@
       }
     }
 
+    // ★絵文字読み上げ禁止フィルター（音声合成用）
+    function removeEmojis(text) {
+      // 絵文字や特殊な記号（🐾など）のパターンを置換して空文字にする
+      return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2605}\u{1F43E}\u{1F431}\u{1F436}\u{1F415}\u{1F408}\u{1F33B}\u{1F33C}\u{1F338}\u{1F337}\u{1F339}\u{1F33A}\u{1F340}\u{1F341}\u{1F496}\u{1F497}\u{1F498}\u{1F499}\u{1F49A}\u{1F49B}\u{1F49C}\u{1F49D}\u{1F49E}\u{1F49F}\u{2764}\u{1F90E}\u{1F90F}\u{1F494}\u{1F48C}\u{1F48D}\u{1F48E}\u{1F48F}\u{1F490}\u{1F491}\u{1F492}\u{1F493}]/gu, '');
+    }
+
     function speakChappyVoice(text, callback) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
+        // 読み上げ直前に絵文字を完全消去！これで「あしあと」と言わなくなります
+        const speechText = removeEmojis(text);
+        const utterance = new SpeechSynthesisUtterance(speechText);
         utterance.lang = 'ja-JP';
         utterance.rate = 1.0;
         utterance.pitch = 1.3;
