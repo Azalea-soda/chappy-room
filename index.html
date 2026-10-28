@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>チャッピーとお話し</title>
+  <title>チャッピーとお話し（調査モード）</title>
   <!-- Google Fonts: Kiwi Maru (太字対応) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -228,7 +228,7 @@
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        お話ししてにゃ！🐾
+        調査モード起動中！何か話しかけてね🐾
       </div>
     </div>
 
@@ -257,7 +257,7 @@
   </div>
 
   <script>
-    // --- API設定（最新の稼働モデル gemini-2.5-flash に修正済み） ---
+    // --- API設定 ---
     const API_KEY = "AQ.Ab8RN6K7WHCxqcOk776nPonS3_saeh9UWolpROBiBwWKJNECpQ";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
@@ -268,7 +268,7 @@
     const hanamaruIcon = document.getElementById('hanamaru-icon');
 
     let talkCount = 0;
-    let currentState = 'idle'; // 'idle'（白）, 'listening'（オレンジ）, 'speaking'（青）
+    let currentState = 'idle';
     let recognition = null;
     let sessionUserTexts = [];
 
@@ -295,20 +295,13 @@
         if (currentState === 'listening') {
           try {
             recognition.start();
-          } catch (e) {
-            console.log("再起動スキップ:", e);
-          }
+          } catch (e) {}
         }
       };
-
-      recognition.onerror = (event) => {
-        console.error("音声認識エラー:", event.error);
-      };
     } else {
-      alert("お使いのブラウザは音声認識に対応していません。");
+      alert("音声認識に対応していません。");
     }
 
-    // 【厳格なボタン制御ルール】
     function handleMicClick() {
       if (!recognition) return;
 
@@ -316,83 +309,74 @@
         currentState = 'listening';
         setButtonState('listening');
         sessionUserTexts = [];
-        try {
-          recognition.start();
-        } catch(e) {
-          console.error(e);
-        }
+        try { recognition.start(); } catch(e) {}
 
       } else if (currentState === 'listening') {
         currentState = 'speaking';
         setButtonState('speaking');
-        try {
-          recognition.stop();
-        } catch(e) {
-          console.error(e);
-        }
+        try { recognition.stop(); } catch(e) {}
 
         const fullTalk = sessionUserTexts.join(' ').trim();
-        if (fullTalk !== "") {
-          getChappyResponse(fullTalk);
-        } else {
-          const fallbackText = "こんにちは";
-          addUserBubble(fallbackText);
-          getChappyResponse(fallbackText);
-        }
+        const targetText = fullTalk !== "" ? fullTalk : "こんにちは";
+        if (fullTalk === "") addUserBubble(targetText);
 
-      } else if (currentState === 'speaking') {
-        console.log("チャッピーがお返事中です。お待ちください。");
+        getChappyResponse(targetText);
       }
     }
 
-    // ★最新モデルで正しく通信する関数
+    // ★【調査用】エラーや返ってきた中身をそのまま画面に出す関数
     async function getChappyResponse(userText) {
       try {
-        const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
-お母さんの言葉：「${userText}」
-この言葉に優しく寄り添って、温かいお返事をしてね：`;
+        const promptText = `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
 
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [
-              { role: "user", parts: [{ text: promptText }] }
-            ]
+            contents: [{ role: "user", parts: [{ text: promptText }] }]
           })
         });
 
-        const data = await response.json();
-        
-        // 正確にAIの返答を取り出す
-        let reply = "";
-        if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
-          reply = data.candidates[0].content.parts[0].text.trim();
-        } else {
-          reply = "うんうん、チャッピーはずっとお母さんのそばにいるよ🐾";
+        // 通信自体のエラー（403や404など）をキャッチ
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`HTTPエラー [${response.status}]: ${errBody}`);
         }
 
-        addChappyBubble(reply);
-        incrementCount();
+        const data = await response.json();
         
-        speakChappyVoice(reply, () => {
-          currentState = 'idle';
-          setButtonState('idle');
-        });
+        // テキストが無事に取れたか確認
+        if (
+          data &&
+          data.candidates &&
+          data.candidates[0] &&
+          data.candidates[0].content &&
+          data.candidates[0].content.parts &&
+          data.candidates[0].content.parts[0].text
+        ) {
+          const reply = data.candidates[0].content.parts[0].text.trim();
+          addChappyBubble(reply);
+          incrementCount();
+          speakChappyVoice(reply, () => { currentState = 'idle'; setButtonState('idle'); });
+        } else {
+          // テキストが取れなかった場合、Googleから返ってきた生データ（JSON）をそのまま画面に表示！
+          const rawString = JSON.stringify(data);
+          throw new Error(`データ構造不一致。Googleからの生データ: ${rawString}`);
+        }
 
       } catch (error) {
-        console.error("API通信エラー:", error);
-        const fallbackReply = "お声が聞けて嬉しいにゃ🐾 ゆっくりお話しよね。";
-        addChappyBubble(fallbackReply);
+        console.error("調査用エラー:", error);
+        // ★ここで隠さず、エラーの本当の理由をチャッピーの吹き出しにそのまま出します！
+        const debugMsg = `【調査結果】${error.message}`;
+        addChappyBubble(debugMsg);
         
-        speakChappyVoice(fallbackReply, () => {
+        speakChappyVoice("エラーが起きたにゃ", () => {
           currentState = 'idle';
           setButtonState('idle');
         });
       }
     }
 
-    // ★絵文字読み上げ禁止フィルター（音声合成用）
     function removeEmojis(text) {
       return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2605}\u{1F43E}\u{1F431}\u{1F436}\u{1F415}\u{1F408}\u{1F33B}\u{1F33C}\u{1F338}\u{1F337}\u{1F339}\u{1F33A}\u{1F340}\u{1F341}\u{1F496}\u{1F497}\u{1F498}\u{1F499}\u{1F49A}\u{1F49B}\u{1F49C}\u{1F49D}\u{1F49E}\u{1F49F}\u{2764}\u{1F90E}\u{1F90F}\u{1F494}\u{1F48C}\u{1F48D}\u{1F48E}\u{1F48F}\u{1F490}\u{1F491}\u{1F492}\u{1F493}]/gu, '');
     }
@@ -405,14 +389,8 @@
         utterance.lang = 'ja-JP';
         utterance.rate = 1.0;
         utterance.pitch = 1.3;
-        
-        utterance.onend = () => {
-          if (callback) callback();
-        };
-        utterance.onerror = () => {
-          if (callback) callback();
-        };
-        
+        utterance.onend = () => { if (callback) callback(); };
+        utterance.onerror = () => { if (callback) callback(); };
         window.speechSynthesis.speak(utterance);
       } else {
         if (callback) callback();
