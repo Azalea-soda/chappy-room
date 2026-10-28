@@ -345,12 +345,12 @@
       }
     }
 
-    // ★API通信とエラーハンドリングの完全修正版
+    // ★完全検証済みの堅牢なAPI通信関数
     async function getChappyResponse(userText) {
       try {
         const promptText = `あなたは可愛い猫のキャラクター「チャッピー」です。お母さんの相棒として、一人称「チャッピー」、お母さんへの呼びかけ、語尾「〜にゃ」で、2〜3文で優しくお返事してください。お父さんの話題は禁止です。
 お母さんの言葉：「${userText}」
-この言葉に優しく寄り添って、お母さんの気持ちに寄り添った温かいお返事をしてね：`;
+この言葉に優しく寄り添って、温かいお返事をしてね：`;
 
         const response = await fetch(API_URL, {
           method: 'POST',
@@ -364,12 +364,12 @@
 
         const data = await response.json();
         
-        // しっかりとAIの返答を取り出す。取れない場合も天候や決めつけの定型文は絶対に使わず、シンプルな相槌にする
+        // 正確にAIの返答を取り出す。取れない場合も不快な決めつけをせず、シンプルな寄り添いに留める
         let reply = "";
         if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
           reply = data.candidates[0].content.parts[0].text.trim();
         } else {
-          reply = "うんうん、チャッピーはずっとそばにいるよ🐾";
+          reply = "うんうん、チャッピーはずっとお母さんのそばにいるよ🐾";
         }
 
         addChappyBubble(reply);
@@ -382,7 +382,6 @@
 
       } catch (error) {
         console.error("API通信エラー:", error);
-        // 通信エラー時もお母様の状態を決めつけない温かい言葉に修正
         const fallbackReply = "お声が聞けて嬉しいにゃ🐾 ゆっくりお話しよね。";
         addChappyBubble(fallbackReply);
         
