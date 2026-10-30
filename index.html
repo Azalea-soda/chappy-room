@@ -1,10 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>チャッピーとお話し（調査モード）</title>
-  <!-- Google Fonts: Kiwi Maru (太字対応) -->
+  <title>チャッピーと話そう！</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500;700&display=swap" rel="stylesheet">
@@ -27,7 +27,6 @@
       background-color: #1a1a2e;
     }
 
-    /* 全体画面（冬のお部屋 bg-winter.png） */
     #app-container {
       position: relative;
       width: 100%;
@@ -41,7 +40,6 @@
       background-repeat: no-repeat;
     }
 
-    /* 1. 上部：LINE風スクロール吹き出しエリア */
     #chat-scroll-area {
       height: 38%;
       margin: 14px 16px 0 16px;
@@ -57,12 +55,12 @@
     #chat-scroll-area::-webkit-scrollbar {
       width: 4px;
     }
+
     #chat-scroll-area::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.4);
       border-radius: 2px;
     }
 
-    /* 吹き出し共通スタイル */
     .chat-bubble {
       max-width: 85%;
       padding: 12px 18px;
@@ -81,7 +79,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* チャッピーの吹き出し */
     .bubble-chappy {
       align-self: flex-start;
       background: rgba(255, 255, 255, 0.55);
@@ -90,7 +87,6 @@
       border: 1px solid rgba(255, 255, 255, 0.6);
     }
 
-    /* お母さんの吹き出し */
     .bubble-user {
       align-self: flex-end;
       background: rgba(255, 140, 40, 0.55);
@@ -100,7 +96,6 @@
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
-    /* 2. 中央：チャッピー画像エリア */
     #character-area {
       flex: 1;
       display: flex;
@@ -118,7 +113,6 @@
       filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
     }
 
-    /* 3. 下部：ホワイトカード領域 */
     #bottom-card {
       background: #ffffff;
       border-top-left-radius: 26px;
@@ -133,7 +127,6 @@
       flex-shrink: 0;
     }
 
-    /* カウンター行 */
     #counter-wrapper {
       width: 100%;
       text-align: center;
@@ -151,7 +144,6 @@
       color: #222222;
     }
 
-    /* 花丸アイコン */
     #hanamaru-icon {
       width: 42px;
       height: 42px;
@@ -162,7 +154,6 @@
       transform: translateY(8px);
     }
 
-    /* カウンター数字 */
     #talk-count {
       font-size: 1.6rem;
       font-weight: 700;
@@ -172,7 +163,6 @@
       vertical-align: baseline;
     }
 
-    /* マイクボタン（丸い土台） */
     #mic-button {
       width: 72px;
       height: 72px;
@@ -187,7 +177,6 @@
       overflow: hidden;
     }
 
-    /* ボタンの中のマイクイラスト */
     #mic-icon-img {
       width: 42px;
       height: 42px;
@@ -195,20 +184,17 @@
       pointer-events: none;
     }
 
-    /* 待機状態：白い背景 */
     #mic-button.state-idle {
       background-color: #ffffff;
       box-shadow: 0 0 0 6px rgba(220, 220, 220, 0.6), 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* 録音中状態：少し淡いオレンジ色の背景 ＋ 優しく光るアニメーション */
     #mic-button.state-listening {
-      background-color: #ffb76b; 
+      background-color: #ffb76b;
       box-shadow: 0 0 0 8px rgba(255, 183, 107, 0.4), 0 4px 14px rgba(255, 140, 0, 0.2);
       animation: pulse-orange 1.5s infinite;
     }
 
-    /* 応答中状態：少し淡い青色の背景 */
     #mic-button.state-speaking {
       background-color: #7ab8ff;
       box-shadow: 0 0 0 8px rgba(122, 184, 255, 0.4), 0 4px 14px rgba(74, 144, 226, 0.2);
@@ -224,20 +210,17 @@
 <body>
 
   <div id="app-container">
-    
-    <!-- 上部：LINE風スクロール吹き出しエリア -->
+
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
-        調査モード起動中！何か話しかけてね🐾
+        こんにちは！何かお話ししようにゃ🐾
       </div>
     </div>
 
-    <!-- 中央：チャッピー画像 -->
     <div id="character-area">
       <img id="chappy-image" src="cat-default.png" alt="チャッピー">
     </div>
 
-    <!-- 下部：ホワイトカード領域 -->
     <div id="bottom-card">
       <div id="counter-wrapper">
         <div id="counter-text-line">
@@ -248,7 +231,6 @@
         </div>
       </div>
 
-      <!-- マイクボタン -->
       <button id="mic-button" class="state-idle" onclick="handleMicClick()">
         <img id="mic-icon-img" src="mic-bk.png" alt="🎙️" onerror="this.style.display='none'; this.parentNode.innerText='🎙️';">
       </button>
@@ -323,53 +305,170 @@
       }
     }
 
-    // ★【調査用】エラーや返ってきた中身をそのまま画面に出す関数
+    // --- ストリーミング応答 ---
     async function getChappyResponse(userText) {
+      let chappyBubble = null;
+      let receivedText = "";
+      let speechRemainder = "";
+      let speechChain = Promise.resolve();
+
+      function addSpeech(text) {
+        const cleanText = removeEmojis(text).trim();
+        if (!cleanText) return;
+
+        speechChain = speechChain.then(() => {
+          return new Promise((resolve) => {
+            if (!('speechSynthesis' in window)) {
+              resolve();
+              return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.3;
+            utterance.onend = resolve;
+            utterance.onerror = resolve;
+
+            window.speechSynthesis.speak(utterance);
+          });
+        });
+      }
+
+      function updateBubble(text) {
+        if (!chappyBubble) {
+          chappyBubble = document.createElement('div');
+          chappyBubble.className = 'chat-bubble bubble-chappy';
+          chatScrollArea.appendChild(chappyBubble);
+        }
+
+        chappyBubble.textContent = text;
+        scrollToBottom();
+      }
+
+      function receiveText(text) {
+        if (!text) return;
+
+        receivedText += text;
+        updateBubble(receivedText);
+
+        speechRemainder += text;
+
+        const sentences = speechRemainder.match(
+          /[\s\S]*?[。！？!?]+["'」』）】]?/g
+        );
+
+        if (sentences) {
+          for (const sentence of sentences) {
+            addSpeech(sentence);
+          }
+
+          speechRemainder = speechRemainder.slice(
+            sentences.join("").length
+          );
+        }
+      }
+
       try {
-        const promptText = `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
+        const promptText =
+          `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
+
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
 
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: promptText }] }]
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: promptText }]
+              }
+            ]
           })
         });
 
-        // 通信自体のエラー（403や404など）をキャッチ
         if (!response.ok) {
           const errBody = await response.text();
-          throw new Error(`HTTPエラー [${response.status}]: ${errBody}`);
+          throw new Error(
+            `HTTPエラー [${response.status}]: ${errBody}`
+          );
         }
 
-        const data = await response.json();
-        
-        // テキストが無事に取れたか確認
-        if (
-          data &&
-          data.candidates &&
-          data.candidates[0] &&
-          data.candidates[0].content &&
-          data.candidates[0].content.parts &&
-          data.candidates[0].content.parts[0].text
-        ) {
-          const reply = data.candidates[0].content.parts[0].text.trim();
-          addChappyBubble(reply);
-          incrementCount();
-          speakChappyVoice(reply, () => { currentState = 'idle'; setButtonState('idle'); });
-        } else {
-          // テキストが取れなかった場合、Googleから返ってきた生データ（JSON）をそのまま画面に表示！
-          const rawString = JSON.stringify(data);
-          throw new Error(`データ構造不一致。Googleからの生データ: ${rawString}`);
+        if (!response.body) {
+          throw new Error("ストリーミング応答を受信できません");
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        function processLine(line) {
+          line = line.trim();
+
+          if (!line.startsWith("data:")) return;
+
+          const jsonText = line.slice(5).trim();
+
+          if (!jsonText || jsonText === "[DONE]") return;
+
+          const data = JSON.parse(jsonText);
+          const parts =
+            data?.candidates?.[0]?.content?.parts || [];
+
+          for (const part of parts) {
+            if (typeof part.text === "string") {
+              receiveText(part.text);
+            }
+          }
+        }
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            processLine(line);
+          }
+        }
+
+        buffer += decoder.decode();
+
+        if (buffer.trim()) {
+          processLine(buffer);
+        }
+
+        if (!receivedText.trim()) {
+          throw new Error("チャッピーの返事を受け取れませんでした");
+        }
+
+        if (speechRemainder.trim()) {
+          addSpeech(speechRemainder);
+          speechRemainder = "";
+        }
+
+        incrementCount();
+
+        await speechChain;
+
+        currentState = 'idle';
+        setButtonState('idle');
 
       } catch (error) {
-        console.error("調査用エラー:", error);
-        // ★ここで隠さず、エラーの本当の理由をチャッピーの吹き出しにそのまま出します！
-        const debugMsg = `【調査結果】${error.message}`;
+        console.error("ストリーミングエラー:", error);
+
+        const debugMsg = `【接続エラー】${error.message}`;
         addChappyBubble(debugMsg);
-        
-        speakChappyVoice("エラーが起きたにゃ", () => {
+
+        speakChappyVoice("うまくお返事できなかったにゃ", () => {
           currentState = 'idle';
           setButtonState('idle');
         });
@@ -398,6 +497,7 @@
 
     function setButtonState(state) {
       micButton.className = 'state-' + state;
+
       if (state === 'idle') {
         micIconImg.src = 'mic-bk.png';
       } else {
@@ -408,6 +508,7 @@
     function incrementCount() {
       talkCount++;
       talkCountEl.textContent = talkCount;
+
       if (talkCount >= 1) {
         hanamaruIcon.style.display = 'inline-block';
       }
