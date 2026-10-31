@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -312,6 +311,10 @@
       let speechRemainder = "";
       let speechChain = Promise.resolve();
 
+      // Worker側の30秒制限より少し長く、応答ヘッダーの到着を待つ
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 35000);
+
       function addSpeech(text) {
         const cleanText = removeEmojis(text).trim();
         if (!cleanText) return;
@@ -369,6 +372,24 @@
         }
       }
 
+      function processLine(line) {
+        line = line.trim();
+
+        if (!line.startsWith("data:")) return;
+
+        const jsonText = line.slice(5).trim();
+        if (!jsonText || jsonText === "[DONE]") return;
+
+        const data = JSON.parse(jsonText);
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+
+        for (const part of parts) {
+          if (typeof part.text === "string") {
+            receiveText(part.text);
+          }
+        }
+      }
+
       try {
         const promptText =
           `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
@@ -377,18 +398,28 @@
           window.speechSynthesis.cancel();
         }
 
+        const requestBody = JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: promptText }]
+            }
+          ]
+        });
+
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: promptText }]
-              }
-            ]
-          })
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+          },
+          // 日本語をUTF-8のバイト列として明示して送信
+          body: new TextEncoder().encode(requestBody),
+          signal: controller.signal
         });
+
+        // タイムアウトは応答ヘッダーの到着までに限定する。
+        // ヘッダー受信後のストリーミング読み取りは途中で打ち切らない。
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           const errBody = await response.text();
@@ -405,29 +436,8 @@
         const decoder = new TextDecoder("utf-8");
         let buffer = "";
 
-        function processLine(line) {
-          line = line.trim();
-
-          if (!line.startsWith("data:")) return;
-
-          const jsonText = line.slice(5).trim();
-
-          if (!jsonText || jsonText === "[DONE]") return;
-
-          const data = JSON.parse(jsonText);
-          const parts =
-            data?.candidates?.[0]?.content?.parts || [];
-
-          for (const part of parts) {
-            if (typeof part.text === "string") {
-              receiveText(part.text);
-            }
-          }
-        }
-
         while (true) {
           const { value, done } = await reader.read();
-
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
@@ -456,22 +466,22 @@
         }
 
         incrementCount();
-
         await speechChain;
-
-        currentState = 'idle';
-        setButtonState('idle');
 
       } catch (error) {
         console.error("ストリーミングエラー:", error);
 
-        const debugMsg = `【接続エラー】${error.message}`;
-        addChappyBubble(debugMsg);
+        const message = error.name === "AbortError"
+          ? "応答が35秒以内に届かなかったにゃ"
+          : error.message;
 
-        speakChappyVoice("うまくお返事できなかったにゃ", () => {
-          currentState = 'idle';
-          setButtonState('idle');
-        });
+        addChappyBubble(`【接続エラー】${message}`);
+
+        speakChappyVoice("うまくお返事できなかったにゃ", () => {});
+      } finally {
+        clearTimeout(timeoutId);
+        currentState = 'idle';
+        setButtonState('idle');
       }
     }
 
