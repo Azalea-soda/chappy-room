@@ -203,7 +203,7 @@
 
     /* 録音中状態：少し淡いオレンジ色の背景 ＋ 優しく光るアニメーション */
     #mic-button.state-listening {
-      background-color: #ffb76b; 
+      background-color: #ffb76b;
       box-shadow: 0 0 0 8px rgba(255, 183, 107, 0.4), 0 4px 14px rgba(255, 140, 0, 0.2);
       animation: pulse-orange 1.5s infinite;
     }
@@ -224,7 +224,7 @@
 <body>
 
   <div id="app-container">
-    
+
     <!-- 上部：LINE風スクロール吹き出しエリア -->
     <div id="chat-scroll-area">
       <div class="chat-bubble bubble-chappy">
@@ -270,7 +270,12 @@
     let currentState = 'idle';
     let recognition = null;
     let sessionUserTexts = [];
+    let recognitionError = null;
+    let finishTimer = null;
+    let responseStarted = false;
+    let recognitionActive = false;
 
+    // 音声認識の準備
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
@@ -278,98 +283,199 @@
       recognition.continuous = true;
       recognition.interimResults = false;
 
+      // 確定した音声だけを保存する
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            const text = event.results[i][0].transcript.trim();
-            if (text !== "") {
-              sessionUserTexts.push(text);
-              addUserBubble(text);
+            const recognizedText = event.results[i][0].transcript.trim();
+
+            if (recognizedText !== '') {
+              sessionUserTexts.push(recognizedText);
+              addUserBubble(recognizedText);
             }
           }
         }
       };
 
-      recognition.onend = () => {
+      recognition.onerror = (event) => {
+        console.error('音声認識エラー:', event.error);
+        recognitionError = event.error || 'unknown';
+
+        // 録音終了操作中なら、onendでまとめて処理する
+        if (currentState === 'processing') return;
+
+        // 録音中に予期しないエラーが起きた場合
         if (currentState === 'listening') {
+          currentState = 'processing';
+          setButtonState('speaking');
+          try { recognition.stop(); } catch (e) {}
+        }
+      };
+
+      recognition.onend = () => {
+        recognitionActive = false;
+
+        if (currentState === 'listening') {
+          // 認識サービスが途中で終了した場合は録音を継続する
+          if (recognitionError) {
+            finishRecognition();
+            return;
+          }
+
           try {
             recognition.start();
-          } catch (e) {}
+            recognitionActive = true;
+          } catch (e) {
+            console.error('音声認識の再開に失敗:', e);
+            recognitionError = 'restart-failed';
+            finishRecognition();
+          }
+          return;
+        }
+
+        if (currentState === 'processing') {
+          finishRecognition();
         }
       };
     } else {
-      alert("音声認識に対応していません。");
+      alert('音声認識に対応していません。');
     }
 
+    // マイクボタン
     function handleMicClick() {
       if (!recognition) return;
 
       if (currentState === 'idle') {
+        // 新しい会話を開始
+        sessionUserTexts = [];
+        recognitionError = null;
+        responseStarted = false;
+
         currentState = 'listening';
         setButtonState('listening');
-        sessionUserTexts = [];
-        try { recognition.start(); } catch(e) {}
+
+        try {
+          recognition.start();
+          recognitionActive = true;
+        } catch (error) {
+          console.error('音声認識の開始に失敗:', error);
+          recognitionError = 'start-failed';
+          currentState = 'idle';
+          setButtonState('idle');
+          showRecognitionError();
+        }
 
       } else if (currentState === 'listening') {
-        currentState = 'speaking';
+        // stop()の直後には結果が届くことがあるため、ここでは送信しない
+        currentState = 'processing';
         setButtonState('speaking');
-        try { recognition.stop(); } catch(e) {}
 
-        const fullTalk = sessionUserTexts.join(' ').trim();
-        const targetText = fullTalk !== "" ? fullTalk : "こんにちは";
-        if (fullTalk === "") addUserBubble(targetText);
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.error('音声認識の停止に失敗:', error);
+          // stopに失敗しても、確定済みの文があれば一度だけ処理する
+          finishRecognition();
+          return;
+        }
 
-        getChappyResponse(targetText);
+        // onendが返らない場合に備えた安全弁
+        clearTimeout(finishTimer);
+        finishTimer = setTimeout(() => {
+          if (currentState === 'processing') {
+            console.warn('音声認識の終了待ちがタイムアウトしました');
+            try { recognition.abort(); } catch (e) {}
+            finishRecognition();
+          }
+        }, 10000);
       }
     }
 
-    // ★【調査用】エラーや返ってきた中身をそのまま画面に出す関数
+    // 音声認識の終了後、確定した全文を一度だけ送信する
+    function finishRecognition() {
+      if (currentState !== 'processing' || responseStarted) return;
+
+      responseStarted = true;
+      clearTimeout(finishTimer);
+      finishTimer = null;
+
+      const fullTalk = sessionUserTexts.join(' ').trim();
+
+      if (!fullTalk) {
+        currentState = 'idle';
+        setButtonState('idle');
+
+        if (recognitionError) {
+          showRecognitionError();
+        } else {
+          addChappyBubble('ごめんにゃ！うまく聞き取れなかったにゃ。もう一度お話ししてほしいにゃ🐾');
+          speakChappyVoice('ごめんにゃ。うまく聞き取れなかったにゃ。もう一度お話ししてほしいにゃ。', () => {});
+        }
+        return;
+      }
+
+      // 確定した全文をここで初めて送信する
+      getChappyResponse(fullTalk);
+    }
+
+    function showRecognitionError() {
+      const message = 'ごめんにゃ！音声認識でエラーが出たにゃ。もう一度試してほしいにゃ🐾';
+      addChappyBubble(message);
+      speakChappyVoice(message, () => {});
+    }
+
+    // --- Geminiへの通常JSONリクエスト ---
     async function getChappyResponse(userText) {
       try {
-        const promptText = `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
+        const promptText =
+          `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
 
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+          },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: promptText }] }]
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: promptText }]
+              }
+            ]
           })
         });
 
-        // 通信自体のエラー（403や404など）をキャッチ
         if (!response.ok) {
           const errBody = await response.text();
           throw new Error(`HTTPエラー [${response.status}]: ${errBody}`);
         }
 
         const data = await response.json();
-        
-        // テキストが無事に取れたか確認
-        if (
-          data &&
-          data.candidates &&
-          data.candidates[0] &&
-          data.candidates[0].content &&
-          data.candidates[0].content.parts &&
-          data.candidates[0].content.parts[0].text
-        ) {
-          const reply = data.candidates[0].content.parts[0].text.trim();
-          addChappyBubble(reply);
-          incrementCount();
-          speakChappyVoice(reply, () => { currentState = 'idle'; setButtonState('idle'); });
-        } else {
-          // テキストが取れなかった場合、Googleから返ってきた生データ（JSON）をそのまま画面に表示！
-          const rawString = JSON.stringify(data);
-          throw new Error(`データ構造不一致。Googleからの生データ: ${rawString}`);
+        const reply =
+          data?.candidates?.[0]?.content?.parts
+            ?.map(part => typeof part.text === 'string' ? part.text : '')
+            .join('')
+            .trim();
+
+        if (!reply) {
+          throw new Error('チャッピーの返事が空でした');
         }
 
+        addChappyBubble(reply);
+        incrementCount();
+
+        speakChappyVoice(reply, () => {
+          currentState = 'idle';
+          setButtonState('idle');
+        });
+
       } catch (error) {
-        console.error("調査用エラー:", error);
-        // ★ここで隠さず、エラーの本当の理由をチャッピーの吹き出しにそのまま出します！
-        const debugMsg = `【調査結果】${error.message}`;
-        addChappyBubble(debugMsg);
-        
-        speakChappyVoice("エラーが起きたにゃ", () => {
+        console.error('チャッピー応答エラー:', error);
+
+        const friendlyMessage = 'ごめんにゃ！エラーが出たにゃ！少し待ってから、もう一度お話ししてほしいにゃ🐾';
+        addChappyBubble(friendlyMessage);
+
+        speakChappyVoice(friendlyMessage, () => {
           currentState = 'idle';
           setButtonState('idle');
         });
@@ -398,6 +504,7 @@
 
     function setButtonState(state) {
       micButton.className = 'state-' + state;
+
       if (state === 'idle') {
         micIconImg.src = 'mic-bk.png';
       } else {
@@ -408,6 +515,7 @@
     function incrementCount() {
       talkCount++;
       talkCountEl.textContent = talkCount;
+
       if (talkCount >= 1) {
         hanamaruIcon.style.display = 'inline-block';
       }
