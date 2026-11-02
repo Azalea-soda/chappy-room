@@ -274,6 +274,8 @@
     let finishTimer = null;
     let responseStarted = false;
     let recognitionActive = false;
+    let responseGeneration = 0;
+    let currentUtterance = null;
 
     // 音声認識の準備
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -350,6 +352,7 @@
         sessionUserTexts = [];
         recognitionError = null;
         responseStarted = false;
+        responseGeneration++;
 
         currentState = 'listening';
         setButtonState('listening');
@@ -364,6 +367,21 @@
           setButtonState('idle');
           showRecognitionError();
         }
+
+      } else if (currentState === 'processing' || currentState === 'speaking') {
+        // 青色：考え中・話し中の割り込み。後から届く返事も無効にする
+        responseGeneration++;
+        clearTimeout(finishTimer);
+        finishTimer = null;
+
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        currentUtterance = null;
+
+        currentState = 'idle';
+        setButtonState('idle');
+        return;
 
       } else if (currentState === 'listening') {
         // stop()の直後には結果が届くことがあるため、ここでは送信しない
@@ -402,14 +420,18 @@
       const fullTalk = sessionUserTexts.join(' ').trim();
 
       if (!fullTalk) {
-        currentState = 'idle';
-        setButtonState('idle');
+        currentState = 'speaking';
+        setButtonState('speaking');
 
         if (recognitionError) {
           showRecognitionError();
         } else {
-          addChappyBubble('ごめんにゃ！うまく聞き取れなかったにゃ。もう一度お話ししてほしいにゃ🐾');
-          speakChappyVoice('ごめんにゃ。うまく聞き取れなかったにゃ。もう一度お話ししてほしいにゃ。', () => {});
+          const message = 'ごめんにゃ！うまく聞き取れなかったにゃ。もう一度お話ししてほしいにゃ🐾';
+          addChappyBubble(message);
+          speakChappyVoice(message, () => {
+            currentState = 'idle';
+            setButtonState('idle');
+          });
         }
         return;
       }
@@ -420,12 +442,18 @@
 
     function showRecognitionError() {
       const message = 'ごめんにゃ！音声認識でエラーが出たにゃ。もう一度試してほしいにゃ🐾';
+      currentState = 'speaking';
+      setButtonState('speaking');
       addChappyBubble(message);
-      speakChappyVoice(message, () => {});
+      speakChappyVoice(message, () => {
+        currentState = 'idle';
+        setButtonState('idle');
+      });
     }
 
     // --- Geminiへの通常JSONリクエスト ---
     async function getChappyResponse(userText) {
+      const requestGeneration = responseGeneration;
       try {
         const promptText =
           `あなたは猫のチャッピー。語尾「〜にゃ」。お母さんに優しく短くお返事して：「${userText}」`;
@@ -445,12 +473,15 @@
           })
         });
 
+        if (requestGeneration !== responseGeneration) return;
+
         if (!response.ok) {
           const errBody = await response.text();
           throw new Error(`HTTPエラー [${response.status}]: ${errBody}`);
         }
 
         const data = await response.json();
+        if (requestGeneration !== responseGeneration) return;
         const reply =
           data?.candidates?.[0]?.content?.parts
             ?.map(part => typeof part.text === 'string' ? part.text : '')
@@ -464,18 +495,25 @@
         addChappyBubble(reply);
         incrementCount();
 
+        currentState = 'speaking';
+        setButtonState('speaking');
         speakChappyVoice(reply, () => {
+          if (requestGeneration !== responseGeneration) return;
           currentState = 'idle';
           setButtonState('idle');
         });
 
       } catch (error) {
+        if (requestGeneration !== responseGeneration) return;
         console.error('チャッピー応答エラー:', error);
 
         const friendlyMessage = 'ごめんにゃ！エラーが出たにゃ！少し待ってから、もう一度お話ししてほしいにゃ🐾';
         addChappyBubble(friendlyMessage);
 
+        currentState = 'speaking';
+        setButtonState('speaking');
         speakChappyVoice(friendlyMessage, () => {
+          if (requestGeneration !== responseGeneration) return;
           currentState = 'idle';
           setButtonState('idle');
         });
@@ -489,13 +527,26 @@
     function speakChappyVoice(text, callback) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+        currentUtterance = null;
+
         const speechText = removeEmojis(text);
         const utterance = new SpeechSynthesisUtterance(speechText);
+        const speechGeneration = responseGeneration;
+
         utterance.lang = 'ja-JP';
         utterance.rate = 1.0;
         utterance.pitch = 1.3;
-        utterance.onend = () => { if (callback) callback(); };
-        utterance.onerror = () => { if (callback) callback(); };
+
+        const finishSpeech = () => {
+          // 中断・差し替え後に古い音声イベントで状態を戻さない
+          if (currentUtterance !== utterance) return;
+          currentUtterance = null;
+          if (speechGeneration === responseGeneration && callback) callback();
+        };
+
+        utterance.onend = finishSpeech;
+        utterance.onerror = finishSpeech;
+        currentUtterance = utterance;
         window.speechSynthesis.speak(utterance);
       } else {
         if (callback) callback();
